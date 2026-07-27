@@ -15,6 +15,7 @@ import requests
 import socket
 import subprocess
 import shutil
+import shlex
 import paho.mqtt.client as mqtt
 import zipfile
 import io
@@ -12115,7 +12116,34 @@ def restore_config():
         return redirect("/")
 
     allowed_files = get_backup_files()
-    return backup_service.restore_config(file, allowed_files, add_log_entry, redirect)
+
+    def _restart_after_restore():
+        helper = os.environ.get(
+            "MPGATEWAY_ADMIN_HELPER",
+            "/usr/local/lib/mp-gateway/mpgateway-admin",
+        )
+
+        # Der Neustart läuft bewusst verzögert, damit Flask die HTTP-Antwort
+        # an den Browser noch vollständig ausliefern kann.
+        subprocess.Popen(
+            [
+                "/bin/sh",
+                "-c",
+                f"sleep 2; sudo {shlex.quote(helper)} service restart",
+            ],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
+    return backup_service.restore_config(
+        file,
+        allowed_files,
+        add_log_entry,
+        redirect,
+        post_restore=_restart_after_restore,
+    )
 
 
 def udp2mqtt():

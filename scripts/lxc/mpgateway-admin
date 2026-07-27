@@ -88,10 +88,28 @@ EOF
     reply true false true "$pset" "Root-Login per SSH-Passwort ist deaktiviert; SSH-Schlüssel bleiben erlaubt"
 }
 
-[ "${1:-}" = "ssh-root-password" ] || { reply false false false false "Unbekannte Aktion"; exit 2; }
-case "${2:-}" in
-    status) status ;;
-    enable) enable ;;
-    disable) disable ;;
-    *) reply false false true false "Unbekannte SSH-Aktion"; exit 2 ;;
+case "${1:-}" in
+    ssh-root-password)
+        case "${2:-}" in
+            status) status ;;
+            enable) enable ;;
+            disable) disable ;;
+            *) reply false false true false "Unbekannte SSH-Aktion"; exit 2 ;;
+        esac
+        ;;
+    service)
+        case "${2:-}" in
+            restart)
+                systemctl restart mp-gateway
+                ;;
+            *)
+                echo "Unbekannte Service-Aktion" >&2
+                exit 2
+                ;;
+        esac
+        ;;
+    *)
+        reply false false false false "Unbekannte Aktion"
+        exit 2
+        ;;
 esac

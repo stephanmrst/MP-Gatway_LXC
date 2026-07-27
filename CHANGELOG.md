@@ -1,3 +1,10 @@
+## 35.1.2
+
+- Restore lädt die wiederhergestellte Konfiguration durch einen verzögerten, automatischen Dienstneustart neu.
+- Loxone- und OpenCCU-Einstellungen aus `config.json` werden dadurch direkt nach dem Restore aktiv.
+- Der privilegierte LXC-Helfer unterstützt den eng begrenzten Befehl `service restart`.
+- Installer und Versionsinformationen auf 35.1.2 aktualisiert.
+
 ## 35.1.1
 - Backup-Restore übernimmt `config.json` einschließlich Loxone- und OpenCCU-Einstellungen.
 - `monitor_settings.json` und `udp_presets.json` werden beim Restore wiederhergestellt.
