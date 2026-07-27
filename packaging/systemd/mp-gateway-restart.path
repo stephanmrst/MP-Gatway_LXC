@@ -1,0 +1,9 @@
+[Unit]
+Description=MP-Gateway Restore-Neustart überwachen
+
+[Path]
+PathExists=/var/lib/mp-gateway/.restart-request
+Unit=mp-gateway-restart.service
+
+[Install]
+WantedBy=multi-user.target

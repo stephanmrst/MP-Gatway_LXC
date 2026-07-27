@@ -12123,9 +12123,14 @@ def restore_config():
             "/usr/local/lib/mp-gateway/mpgateway-admin",
         )
 
-        # Der Helper legt über systemd eine eigenständige, verzögerte
-        # Restart-Unit an. Sie läuft außerhalb des MP-Gateway-cgroups und
-        # überlebt deshalb das Stoppen des aktuellen Dienstprozesses.
+        # Unter Debian/LXC setzt der Helper nur eine Markerdatei. Eine
+        # root-eigene systemd Path-Unit übernimmt den verzögerten Neustart.
+        # Bei lokalen Windows-/Docker-Starts ohne Helper ist kein systemd-
+        # Neustart möglich oder nötig; dort wird der Restore normal beendet.
+        if not os.path.isfile(helper):
+            add_log_entry("Restore: kein LXC-Neustart-Helper vorhanden – Neustart übersprungen")
+            return
+
         result = subprocess.run(
             [helper, "service", "restart-delayed"],
             stdin=subprocess.DEVNULL,

@@ -39,16 +39,19 @@ chown root:mpgateway "$CFG_DIR/mp-gateway.env"
 install -D -o root -g root -m 0755 "$APP_DIR/scripts/lxc/mpgateway-admin" /usr/local/lib/mp-gateway/mpgateway-admin
 install -o root -g root -m 0755 "$APP_DIR/scripts/lxc/mpgateway" /usr/local/sbin/mpgateway
 cat > /etc/sudoers.d/mp-gateway-admin <<'EOF'
-mpgateway ALL=(root) NOPASSWD: /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password status, /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password enable, /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password disable, /usr/local/lib/mp-gateway/mpgateway-admin service restart, /usr/local/lib/mp-gateway/mpgateway-admin service restart-delayed
+mpgateway ALL=(root) NOPASSWD: /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password status, /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password enable, /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password disable
 EOF
 chmod 0440 /etc/sudoers.d/mp-gateway-admin
 visudo -cf /etc/sudoers.d/mp-gateway-admin >/dev/null
 
 install -o root -g root -m 0644 "$APP_DIR/packaging/systemd/mp-gateway.service" /etc/systemd/system/mp-gateway.service
+install -o root -g root -m 0644 "$APP_DIR/packaging/systemd/mp-gateway-restart.service" /etc/systemd/system/mp-gateway-restart.service
+install -o root -g root -m 0644 "$APP_DIR/packaging/systemd/mp-gateway-restart.path" /etc/systemd/system/mp-gateway-restart.path
 chown -R mpgateway:mpgateway "$APP_DIR" "$CFG_DIR" "$DATA_DIR" "$BACKUP_DIR" "$LOG_DIR"
 systemctl enable --now ssh
 systemctl daemon-reload
 systemctl enable --now mp-gateway
+systemctl enable --now mp-gateway-restart.path
 
 echo
 echo "MP-Gateway wurde installiert."

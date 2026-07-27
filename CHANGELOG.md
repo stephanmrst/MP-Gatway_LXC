@@ -1,3 +1,12 @@
+# Changelog
+
+## 35.1.5
+
+- Debian-LXC: Restore-Neustart nutzt jetzt eine root-eigene systemd Path-Unit und benötigt weder `sudo` noch `systemd-run` aus dem eingeschränkten Anwendungsdienst.
+- Der MP-Gateway-Dienst setzt nach dem Restore nur `/var/lib/mp-gateway/.restart-request`; der Neustart erfolgt zwei Sekunden später außerhalb seiner Sandbox.
+- Lokale Windows- und Docker-Starts ohne LXC-Helper brechen beim Restore nicht mehr mit `WinError 2` ab.
+- Die Rückleitung bleibt auf `/settings_embed`, damit keine doppelte Sidebar entsteht.
+
 ## 35.1.3
 
 ## 35.1.4
