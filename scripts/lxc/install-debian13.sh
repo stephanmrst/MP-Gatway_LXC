@@ -39,7 +39,7 @@ chown root:mpgateway "$CFG_DIR/mp-gateway.env"
 install -D -o root -g root -m 0755 "$APP_DIR/scripts/lxc/mpgateway-admin" /usr/local/lib/mp-gateway/mpgateway-admin
 install -o root -g root -m 0755 "$APP_DIR/scripts/lxc/mpgateway" /usr/local/sbin/mpgateway
 cat > /etc/sudoers.d/mp-gateway-admin <<'EOF'
-mpgateway ALL=(root) NOPASSWD: /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password status, /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password enable, /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password disable, /usr/local/lib/mp-gateway/mpgateway-admin service restart
+mpgateway ALL=(root) NOPASSWD: /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password status, /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password enable, /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password disable, /usr/local/lib/mp-gateway/mpgateway-admin service restart, /usr/local/lib/mp-gateway/mpgateway-admin service restart-delayed
 EOF
 chmod 0440 /etc/sudoers.d/mp-gateway-admin
 visudo -cf /etc/sudoers.d/mp-gateway-admin >/dev/null

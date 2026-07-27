@@ -12123,19 +12123,21 @@ def restore_config():
             "/usr/local/lib/mp-gateway/mpgateway-admin",
         )
 
-        # Der Neustart läuft bewusst verzögert, damit Flask die HTTP-Antwort
-        # an den Browser noch vollständig ausliefern kann.
-        subprocess.Popen(
-            [
-                "/bin/sh",
-                "-c",
-                f"sleep 2; sudo {shlex.quote(helper)} service restart",
-            ],
+        # Der Helper legt über systemd eine eigenständige, verzögerte
+        # Restart-Unit an. Sie läuft außerhalb des MP-Gateway-cgroups und
+        # überlebt deshalb das Stoppen des aktuellen Dienstprozesses.
+        result = subprocess.run(
+            ["sudo", helper, "service", "restart-delayed"],
             stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=10,
+            check=False,
         )
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "unbekannter Fehler").strip()
+            raise RuntimeError(detail)
 
     return backup_service.restore_config(
         file,

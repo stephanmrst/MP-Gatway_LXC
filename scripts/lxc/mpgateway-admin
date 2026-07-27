@@ -102,6 +102,14 @@ case "${1:-}" in
             restart)
                 systemctl restart mp-gateway
                 ;;
+            restart-delayed)
+                unit="mp-gateway-restore-restart-$(date +%s)-$$"
+                systemd-run \
+                    --quiet \
+                    --unit="$unit" \
+                    --on-active=2s \
+                    /bin/systemctl restart mp-gateway.service
+                ;;
             *)
                 echo "Unbekannte Service-Aktion" >&2
                 exit 2

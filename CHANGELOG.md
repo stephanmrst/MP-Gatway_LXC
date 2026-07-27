@@ -1,3 +1,10 @@
+## 35.1.3
+
+- Restore-Neustart wird über eine eigenständige, verzögerte `systemd-run`-Unit ausgeführt.
+- Der Neustart läuft dadurch außerhalb des MP-Gateway-Dienstes und wird beim Stoppen des Dienstes nicht mehr mit beendet.
+- Fehler beim Einplanen des Neustarts werden im Live-Log als `Restore Neustart Fehler` ausgegeben.
+- Installer, Sudo-Regel und Versionsinformationen auf 35.1.3 aktualisiert.
+
 ## 35.1.2
 
 - Restore lädt die wiederhergestellte Konfiguration durch einen verzögerten, automatischen Dienstneustart neu.
