@@ -1,3 +1,11 @@
+## 35.1.7
+
+- Restore-Zielpfade korrigiert: CONFIG_DIR hat nun Vorrang vor DATA_DIR und Programmverzeichnis.
+- `config.json` wird im LXC zuverlässig nach `/etc/mp-gateway/config.json` geschrieben.
+- Gleichnamige Paketdateien können produktive Konfigurationen nicht mehr überlagern.
+- Restore-Log zeigt zur Kontrolle den tatsächlich verwendeten Zielpfad.
+- Erfolgsdialog und automatischer Wechsel zum Dashboard bleiben erhalten.
+
 ## 35.1.6
 
 - Restore-Neustart ohne sudo, systemctl oder zusätzliche LXC-Units: Der Python-Prozess startet sich nach der HTTP-Antwort per `exec` neu.

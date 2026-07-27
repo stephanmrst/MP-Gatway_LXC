@@ -1,14 +1,15 @@
 {
   "product": "MP-Gateway",
-  "version": "35.1.6",
+  "version": "35.1.7",
   "minimum_version": "34.4.0",
   "release_date": "2026-07-27",
   "zip_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip",
   "sha256": "",
   "changelog": [
-    "Restore-Neustart wird als eigenständige systemd-Unit verzögert ausgeführt",
-    "Neustartfehler werden im Live-Log sichtbar gemeldet",
-    "Loxone- und OpenCCU-Konfiguration wird nach dem Restore zuverlässig neu geladen"
+    "Restore schreibt gleichnamige Konfigurationsdateien vorrangig nach /etc/mp-gateway",
+    "config.json wird nicht mehr versehentlich in das Programmverzeichnis restauriert",
+    "Restore-Log zeigt den tatsächlichen Zielpfad jeder Datei",
+    "Erfolgsdialog und automatischer Wechsel zum Dashboard bleiben erhalten"
   ],
   "download_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip"
 }

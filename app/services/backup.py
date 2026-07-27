@@ -27,10 +27,13 @@ def get_backup_files(config_dir, data_dir, base_dir, add_log_entry):
 
                 clean_name = os.path.basename(filename)
 
+                # Die Reihenfolge ist absichtlich CONFIG_DIR -> DATA_DIR -> BASE_DIR.
+                # Gleichnamige Dateien aus dem Programmverzeichnis dürfen eine
+                # produktive Datei aus /etc/mp-gateway nicht überschreiben.
                 if clean_name.lower().endswith(".json"):
-                    result[clean_name] = path
+                    result.setdefault(clean_name, path)
                 elif clean_name in allowed_extra_files:
-                    result[clean_name] = path
+                    result.setdefault(clean_name, path)
 
     except Exception as e:
         add_log_entry(f"Backup Dateisuche Fehler: {e}")
@@ -74,14 +77,6 @@ def restore_config(file_storage, allowed_files, add_log_entry, redirect, post_re
                 clean_name = os.path.basename(filename)
 
                 if clean_name not in allowed_files:
-                    if clean_name in ("config.json","monitor_settings.json","udp_presets.json"):
-                        target_path=os.path.join("/etc/mp-gateway",clean_name)
-                        if not os.path.exists("/etc/mp-gateway"):
-                            target_path=os.path.join(os.getcwd(),clean_name)
-                        with open(target_path,"wb") as f:
-                            f.write(zf.read(filename))
-                        add_log_entry(f"Restore: {clean_name} wiederhergestellt")
-                        continue
                     add_log_entry(f"Restore: {filename} ignoriert")
                     continue
 
@@ -90,7 +85,7 @@ def restore_config(file_storage, allowed_files, add_log_entry, redirect, post_re
                 with open(target_path, "wb") as f:
                     f.write(zf.read(filename))
 
-                add_log_entry(f"Restore: {clean_name} wiederhergestellt")
+                add_log_entry(f"Restore: {clean_name} wiederhergestellt ({target_path})")
 
         add_log_entry("Backup vollständig wiederhergestellt")
 
