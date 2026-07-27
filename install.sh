@@ -8,7 +8,7 @@ MEMORY="${MEMORY:-2048}"
 CORES="${CORES:-2}"
 DISK="${DISK:-8}"
 BRIDGE="${BRIDGE:-vmbr0}"
-RELEASE_FILE="MP-Gateway_35.1.9_LXC_Debian13_Stable.zip"
+RELEASE_FILE="MP-Gateway_35.2.0_LXC_Debian13_Stable.zip"
 RELEASE_URL="https://github.com/stephanmrst/MP-Gatway_LXC/releases/latest/download/${RELEASE_FILE}"
 
 printf '\n== MP-Gateway Bootstrap Installer 0.1 ==\n\n'
@@ -84,7 +84,7 @@ IP="$(pct exec "$CTID" -- hostname -I | awk '{print $1}')"
 
 echo
 echo "========================================"
-echo "MP-Gateway 35.1.9 wurde installiert."
+echo "MP-Gateway 35.2.0 wurde installiert."
 echo "Weboberfläche: http://${IP}:8099"
 echo "Container-ID:  ${CTID}"
 echo "========================================"

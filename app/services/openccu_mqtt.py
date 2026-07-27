@@ -84,9 +84,14 @@ class OpenCcuMqttRuntime:
             except Exception:
                 pass
 
-    def reload(self):
+    def reload(self, config_override=None):
+        """Reload the runtime from disk or from an explicitly supplied OpenCCU config.
+
+        Passing the restored config avoids module/path ambiguities during backup restore
+        and guarantees that the runtime receives exactly the values just written.
+        """
         self.stop()
-        cfg = self._cfg()
+        cfg = dict(config_override or self._cfg())
         enabled = bool(cfg.get("enabled"))
         host = str(cfg.get("mqtt_host") or cfg.get("host") or "").strip()
         try:

@@ -12176,13 +12176,22 @@ def restore_config():
         # Zugangsdaten, Topic und Verbindung unmittelbar synchronisiert.
         openccu_runtime = current_app.extensions.get("openccu_mqtt_runtime")
         if openccu_runtime is not None:
-            openccu_runtime.reload()
+            restored_openccu = dict(restored_config.get("openccu", {}) or {})
+            # Die gerade wiederhergestellten Werte direkt an die Runtime geben.
+            # Damit sind Restore und manueller Speichervorgang identisch und
+            # unabhängig davon, über welche Modulinstanz config.json geladen wird.
+            openccu_runtime.reload(restored_openccu)
             try:
                 openccu_runtime.metadata.refresh_async()
             except Exception as exc:
                 add_log_entry(f"OpenCCU XML-API Aktualisierung Hinweis: {exc}")
-            state = "aktiviert" if restored_config.get("openccu", {}).get("enabled") else "deaktiviert"
-            add_log_entry(f"OpenCCU Runtime nach Restore {state}")
+            state = "aktiviert" if restored_openccu.get("enabled") else "deaktiviert"
+            add_log_entry(
+                f"OpenCCU Runtime nach Restore {state}: "
+                f"MQTT={restored_openccu.get('mqtt_host') or restored_openccu.get('host') or '-'}:"
+                f"{restored_openccu.get('mqtt_port', 1883)} "
+                f"Topic={restored_openccu.get('topic_prefix') or 'device/status/#'}"
+            )
         else:
             add_log_entry("OpenCCU Runtime nach Restore nicht verfügbar")
 

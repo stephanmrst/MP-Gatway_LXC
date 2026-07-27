@@ -1,3 +1,10 @@
+## 35.2.0 - 2026-07-27
+
+- OpenCCU-Runtime erhält nach Restore die wiederhergestellte Konfiguration direkt statt sie erneut über einen möglicherweise abweichenden Modulpfad zu laden.
+- Manueller OpenCCU-Speichervorgang und Backup-Restore verwenden jetzt dieselbe Runtime-Aktualisierung.
+- Restore-Log zeigt den tatsächlich an die OpenCCU-Runtime übergebenen MQTT-Endpunkt und das Topic.
+- Kein Prozess-, Docker- oder LXC-Neustart erforderlich.
+
 ## 35.1.9 - 2026-07-27
 
 - OpenCCU-Runtime wird nach Restore explizit neu geladen.

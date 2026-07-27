@@ -111,7 +111,7 @@ def save():
     _core().save_config(config)
     runtime = current_app.extensions.get("openccu_mqtt_runtime")
     if runtime is not None:
-        runtime.reload()
+        runtime.reload(config["openccu"])
     _core().add_log_entry("OpenCCU / CCU-Jack Konfiguration gespeichert")
     return redirect("/openccu_settings_embed")
 
