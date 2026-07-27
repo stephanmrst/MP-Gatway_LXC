@@ -107,4 +107,4 @@ def restore_config(file_storage, allowed_files, add_log_entry, redirect, post_re
     # Restore wird aus der eingebetteten Einstellungsseite gestartet.
     # Nicht auf "/" umleiten, da sonst die komplette Shell inklusive Sidebar
     # im contentFrame geladen wird und die Navigation doppelt erscheint.
-    return redirect("/settings_embed")
+    return redirect("/settings_embed?restore=success")

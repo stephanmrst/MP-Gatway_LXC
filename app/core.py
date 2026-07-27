@@ -4787,6 +4787,43 @@ def settings_content(config, notice=""):
         </form>
     </div>
 </div>
+
+<div id="restore-success-dialog" style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.62); align-items:center; justify-content:center; padding:20px;">
+    <div class="card" style="width:min(520px,100%); margin:0; text-align:center; box-shadow:0 18px 60px rgba(0,0,0,.45);">
+        <h2 class="section-title">Wiederherstellung erfolgreich</h2>
+        <p>Die Konfiguration wurde übernommen. MP-Gateway wird neu gestartet.</p>
+        <p class="small" id="restore-status">Warte auf den Neustart …</p>
+    </div>
+</div>
+<script>
+(function () {{
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("restore") !== "success") return;
+
+    const dialog = document.getElementById("restore-success-dialog");
+    const status = document.getElementById("restore-status");
+    dialog.style.display = "flex";
+
+    let attempts = 0;
+    function waitForGateway() {{
+        attempts += 1;
+        fetch("/dashboard_embed?restore_check=" + Date.now(), {{cache:"no-store"}})
+            .then(response => {{
+                if (!response.ok) throw new Error("noch nicht bereit");
+                status.textContent = "Neustart abgeschlossen – Dashboard wird geöffnet …";
+                setTimeout(() => {{ window.top.location.href = "/"; }}, 500);
+            }})
+            .catch(() => {{
+                status.textContent = "MP-Gateway startet neu …";
+                setTimeout(waitForGateway, attempts < 30 ? 1000 : 2000);
+            }});
+    }}
+
+    // Erst warten, bis der alte Prozess sicher beendet wurde. Sonst könnte
+    // der erste erfolgreiche Abruf noch vom alten Prozess beantwortet werden.
+    setTimeout(waitForGateway, 3500);
+}})();
+</script>
 '''
 
 
@@ -12118,31 +12155,21 @@ def restore_config():
     allowed_files = get_backup_files()
 
     def _restart_after_restore():
-        helper = os.environ.get(
-            "MPGATEWAY_ADMIN_HELPER",
-            "/usr/local/lib/mp-gateway/mpgateway-admin",
-        )
+        # Kein sudo/systemctl nötig: Der laufende Python-Prozess ersetzt sich
+        # nach Abschluss der HTTP-Antwort selbst. Dadurch funktioniert der
+        # Neustart auch mit NoNewPrivileges im LXC sowie unter Docker.
+        def _exec_restart():
+            time.sleep(2.0)
+            try:
+                os.execv(sys.executable, [sys.executable, "-m", "app.main"])
+            except Exception as exc:
+                add_log_entry(f"Restore Prozess-Neustart Fehler: {exc}")
 
-        # Unter Debian/LXC setzt der Helper nur eine Markerdatei. Eine
-        # root-eigene systemd Path-Unit übernimmt den verzögerten Neustart.
-        # Bei lokalen Windows-/Docker-Starts ohne Helper ist kein systemd-
-        # Neustart möglich oder nötig; dort wird der Restore normal beendet.
-        if not os.path.isfile(helper):
-            add_log_entry("Restore: kein LXC-Neustart-Helper vorhanden – Neustart übersprungen")
-            return
-
-        result = subprocess.run(
-            [helper, "service", "restart-delayed"],
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-        if result.returncode != 0:
-            detail = (result.stderr or result.stdout or "unbekannter Fehler").strip()
-            raise RuntimeError(detail)
+        threading.Thread(
+            target=_exec_restart,
+            name="restore-process-restart",
+            daemon=True,
+        ).start()
 
     return backup_service.restore_config(
         file,

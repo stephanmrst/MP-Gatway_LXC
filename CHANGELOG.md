@@ -1,3 +1,9 @@
+## 35.1.6
+
+- Restore-Neustart ohne sudo, systemctl oder zusätzliche LXC-Units: Der Python-Prozess startet sich nach der HTTP-Antwort per `exec` neu.
+- Erfolgsdialog nach der Wiederherstellung mit automatischer Erreichbarkeitsprüfung.
+- Nach erfolgreichem Neustart wird zuverlässig das Dashboard geöffnet.
+
 # Changelog
 
 ## 35.1.5
