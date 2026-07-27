@@ -12127,7 +12127,7 @@ def restore_config():
         # Restart-Unit an. Sie läuft außerhalb des MP-Gateway-cgroups und
         # überlebt deshalb das Stoppen des aktuellen Dienstprozesses.
         result = subprocess.run(
-            ["sudo", helper, "service", "restart-delayed"],
+            [helper, "service", "restart-delayed"],
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

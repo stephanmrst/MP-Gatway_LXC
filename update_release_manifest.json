@@ -1,14 +1,14 @@
 {
   "product": "MP-Gateway",
-  "version": "35.1.2",
+  "version": "35.1.4",
   "minimum_version": "34.4.0",
   "release_date": "2026-07-27",
   "zip_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip",
   "sha256": "",
   "changelog": [
-    "Backup-Restore übernimmt config.json einschließlich Loxone- und OpenCCU-Einstellungen",
-    "monitor_settings.json und udp_presets.json werden beim Restore wiederhergestellt",
-    "systemd-Service erhält den erforderlichen PYTHONPATH für den LXC-Betrieb"
+    "Restore-Neustart wird als eigenständige systemd-Unit verzögert ausgeführt",
+    "Neustartfehler werden im Live-Log sichtbar gemeldet",
+    "Loxone- und OpenCCU-Konfiguration wird nach dem Restore zuverlässig neu geladen"
   ],
   "download_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip"
 }

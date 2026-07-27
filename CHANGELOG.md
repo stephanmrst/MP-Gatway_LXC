@@ -1,5 +1,11 @@
 ## 35.1.3
 
+## 35.1.4
+
+- Restore-Neustart im Debian-LXC ohne `sudo`; der Dienst läuft bereits als root und funktioniert trotz `NoNewPrivileges=yes`.
+- Restore leitet zurück auf `/settings_embed`, damit die komplette MP-Gateway-Shell nicht im Inhaltsfenster geladen wird und keine doppelte Sidebar mehr entsteht.
+- Versions- und Installationsinformationen auf 35.1.4 aktualisiert.
+
 - Restore-Neustart wird über eine eigenständige, verzögerte `systemd-run`-Unit ausgeführt.
 - Der Neustart läuft dadurch außerhalb des MP-Gateway-Dienstes und wird beim Stoppen des Dienstes nicht mehr mit beendet.
 - Fehler beim Einplanen des Neustarts werden im Live-Log als `Restore Neustart Fehler` ausgegeben.
