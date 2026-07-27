@@ -12154,39 +12154,21 @@ def restore_config():
 
     allowed_files = get_backup_files()
 
-    def _reload_after_restore():
-        # Die Konfigurationsdateien sind zu diesem Zeitpunkt vollständig auf
-        # Platte geschrieben. Ein echter Prozessneustart ist erforderlich,
-        # damit alle Hintergrunddienste (Loxone, OpenCCU, MQTT usw.) garantiert
-        # aus demselben frischen Zustand initialisiert werden.
-        restored_config = load_config()
-        loxone_host = str(restored_config.get("loxone", {}).get("host", "") or "").strip()
-        openccu_host = str(restored_config.get("openccu", {}).get("host", "") or "").strip()
-        add_log_entry(
-            f"Restore Konfiguration gespeichert: Loxone={loxone_host or '-'}, OpenCCU={openccu_host or '-'}"
-        )
-        add_log_entry("Restore abgeschlossen – MP-Gateway wird vollständig neu gestartet")
-
-        def _exit_for_supervisor_restart():
-            # Exit-Code ungleich 0: systemd (Restart=on-failure) und Docker
-            # (restart: unless-stopped) starten den Prozess automatisch neu.
-            # Standalone/lokal beendet sich das Programm bewusst; dort ist ein
-            # manueller Neustart erforderlich.
-            time.sleep(2.0)
-            os._exit(75)
-
-        threading.Thread(
-            target=_exit_for_supervisor_restart,
-            name="restore-process-restart",
-            daemon=True,
-        ).start()
+    try:
+        from app.services.process_control import schedule_process_restart
+    except ModuleNotFoundError:
+        from services.process_control import schedule_process_restart
 
     return backup_service.restore_config(
         file,
         allowed_files,
         add_log_entry,
         redirect,
-        post_restore=_reload_after_restore,
+        restart_callback=lambda: schedule_process_restart(
+            delay=2.0,
+            log=add_log_entry,
+            reason="Restore abgeschlossen",
+        ),
     )
 
 

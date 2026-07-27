@@ -97,18 +97,7 @@ case "${1:-}" in
             *) reply false false true false "Unbekannte SSH-Aktion"; exit 2 ;;
         esac
         ;;
-    service)
-        case "${2:-}" in
-            restart)
-                systemctl restart mp-gateway
-                ;;
-            restart-delayed)
-                # Unprivilegierter Dienst setzt nur eine Markerdatei.
-                # Eine root-eigene systemd Path-Unit übernimmt den Neustart.
-                install -d -m 0750 /var/lib/mp-gateway
-                : > /var/lib/mp-gateway/.restart-request
-                ;;
-            *)
+    *)
                 echo "Unbekannte Service-Aktion" >&2
                 exit 2
                 ;;

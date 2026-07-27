@@ -68,7 +68,7 @@ def backup_config(files_to_backup, add_log_entry, send_file, redirect):
         return redirect("/")
 
 
-def restore_config(file_storage, allowed_files, add_log_entry, redirect, post_restore=None):
+def restore_config(file_storage, allowed_files, add_log_entry, redirect, restart_callback=None):
     try:
         memory_file = io.BytesIO(file_storage.read())
 
@@ -89,12 +89,8 @@ def restore_config(file_storage, allowed_files, add_log_entry, redirect, post_re
 
         add_log_entry("Backup vollständig wiederhergestellt")
 
-        if post_restore is not None:
-            try:
-                post_restore()
-                add_log_entry("Konfiguration wurde neu geladen")
-            except Exception as e:
-                add_log_entry(f"Restore Neustart Fehler: {e}")
+        if restart_callback is not None:
+            restart_callback()
 
     except Exception as e:
         add_log_entry(f"Restore Fehler: {e}")

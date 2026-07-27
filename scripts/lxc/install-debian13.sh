@@ -45,13 +45,10 @@ chmod 0440 /etc/sudoers.d/mp-gateway-admin
 visudo -cf /etc/sudoers.d/mp-gateway-admin >/dev/null
 
 install -o root -g root -m 0644 "$APP_DIR/packaging/systemd/mp-gateway.service" /etc/systemd/system/mp-gateway.service
-install -o root -g root -m 0644 "$APP_DIR/packaging/systemd/mp-gateway-restart.service" /etc/systemd/system/mp-gateway-restart.service
-install -o root -g root -m 0644 "$APP_DIR/packaging/systemd/mp-gateway-restart.path" /etc/systemd/system/mp-gateway-restart.path
 chown -R mpgateway:mpgateway "$APP_DIR" "$CFG_DIR" "$DATA_DIR" "$BACKUP_DIR" "$LOG_DIR"
 systemctl enable --now ssh
 systemctl daemon-reload
 systemctl enable --now mp-gateway
-systemctl enable --now mp-gateway-restart.path
 
 echo
 echo "MP-Gateway wurde installiert."

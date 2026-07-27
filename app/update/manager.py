@@ -8,7 +8,6 @@ import os
 import platform
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
 import threading
@@ -118,7 +117,7 @@ class UpdateManager:
             label = "LXC-Container"
             restart_supported = self._systemd_available()
             restart_hint = (
-                f"Der systemd-Dienst {service_name} wird neu gestartet."
+                "MP-Gateway beendet den Prozess; systemd startet ihn automatisch neu."
                 if restart_supported
                 else f"Bitte den Dienst {service_name} im LXC-Container manuell neu starten."
             )
@@ -126,7 +125,7 @@ class UpdateManager:
             kind = "systemd"
             label = "Debian/Linux mit systemd"
             restart_supported = True
-            restart_hint = f"Der systemd-Dienst {service_name} wird neu gestartet."
+            restart_hint = "MP-Gateway beendet den Prozess; systemd startet ihn automatisch neu."
         else:
             kind = "standalone"
             label = f"Standalone ({platform.system()})"
@@ -501,27 +500,13 @@ class UpdateManager:
 
     def request_restart(self) -> dict[str, Any]:
         runtime = self.runtime_info()
-        if runtime.kind == "docker":
-            def delayed_exit() -> None:
-                time.sleep(1.0)
-                os._exit(0)
-            threading.Thread(target=delayed_exit, daemon=True).start()
-            return {"ok": True, "message": "Container-Neustart wurde angefordert."}
+        if not runtime.restart_supported:
+            raise UpdateError(runtime.restart_hint)
 
-        if runtime.kind in {"systemd", "lxc"} and runtime.restart_supported:
-            service = runtime.service_name
-            try:
-                subprocess.Popen(
-                    ["systemctl", "restart", service],
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL,
-                    start_new_session=True,
-                )
-                return {"ok": True, "message": f"Neustart von {service} wurde angefordert."}
-            except OSError as exc:
-                raise UpdateError(f"systemd-Neustart konnte nicht gestartet werden: {exc}") from exc
+        from app.services.process_control import schedule_process_restart
 
-        raise UpdateError(runtime.restart_hint)
+        schedule_process_restart(delay=1.0, reason="Update abgeschlossen")
+        return {"ok": True, "message": "MP-Gateway-Neustart wurde angefordert."}
 
     def read_status(self) -> dict[str, Any]:
         return self._read_json(self.status_file, {})
