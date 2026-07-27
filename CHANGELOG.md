@@ -1,3 +1,11 @@
+## 35.1.9 - 2026-07-27
+
+- OpenCCU-Runtime wird nach Restore explizit neu geladen.
+- Wiederhergestellter Aktivierungsstatus und MQTT-Zugangsdaten gelten sofort.
+- XML-API-Gerätecache wird nach Restore aktualisiert.
+- Kein manueller OpenCCU Aus-/Ein-Schaltvorgang mehr erforderlich.
+- Plattformneutral ohne Prozess-, Docker- oder LXC-Neustart.
+
 ## 35.1.8 - 2026-07-27
 
 - Kritischer LXC-Pfadfehler behoben: `services.config` verwendet jetzt dieselbe `app.engine.port`-Instanz wie die Anwendung.

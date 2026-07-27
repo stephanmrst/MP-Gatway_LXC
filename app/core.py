@@ -12164,7 +12164,27 @@ def restore_config():
         add_log_entry(
             f"Restore Konfiguration neu geladen: Loxone={loxone_host or '-'}, OpenCCU={openccu_host or '-'}"
         )
+
+        # Die Bridge (u. a. Loxone) übernimmt die wiederhergestellte
+        # Konfiguration bereits über ihren vorhandenen Live-Neustart.
         restart_bridge_async()
+
+        # OpenCCU besitzt eine eigene MQTT-Runtime außerhalb der Bridge.
+        # Nur das erneute Lesen von config.json ändert deren laufenden Zustand
+        # nicht. Daher dieselbe Reload-Logik ausführen, die auch beim Speichern
+        # der OpenCCU-Einstellungen verwendet wird. So werden enabled, Host,
+        # Zugangsdaten, Topic und Verbindung unmittelbar synchronisiert.
+        openccu_runtime = current_app.extensions.get("openccu_mqtt_runtime")
+        if openccu_runtime is not None:
+            openccu_runtime.reload()
+            try:
+                openccu_runtime.metadata.refresh_async()
+            except Exception as exc:
+                add_log_entry(f"OpenCCU XML-API Aktualisierung Hinweis: {exc}")
+            state = "aktiviert" if restored_config.get("openccu", {}).get("enabled") else "deaktiviert"
+            add_log_entry(f"OpenCCU Runtime nach Restore {state}")
+        else:
+            add_log_entry("OpenCCU Runtime nach Restore nicht verfügbar")
 
     return backup_service.restore_config(
         file,

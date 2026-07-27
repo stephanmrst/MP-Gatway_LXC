@@ -1,16 +1,16 @@
 {
   "product": "MP-Gateway",
-  "version": "35.1.8",
+  "version": "35.1.9",
   "minimum_version": "34.4.0",
   "release_date": "2026-07-27",
   "zip_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip",
   "sha256": "",
   "changelog": [
-    "Korrigiert die getrennten Modulinstanzen von app.engine.port und engine.port im LXC",
-    "config.json wird jetzt von Restore und Laufzeit garantiert aus demselben Konfigurationsverzeichnis gelesen",
-    "Loxone- und OpenCCU-Einstellungen werden nach Restore live neu geladen",
-    "Kein Prozess-, Docker- oder LXC-Neustart mehr nach Wiederherstellung",
-    "Erfolgsdialog und Wechsel zum Dashboard bleiben erhalten"
+    "OpenCCU-Runtime wird nach einer Wiederherstellung live mit config.json synchronisiert",
+    "Aktivierungsstatus, MQTT-Verbindung und Zugangsdaten werden ohne manuelles Aus- und Einschalten übernommen",
+    "OpenCCU XML-API-Gerätecache wird nach Restore neu eingelesen",
+    "Loxone-Bridge-Reload, Erfolgsdialog und Dashboard-Wechsel bleiben erhalten",
+    "Kein Prozess-, Docker- oder LXC-Neustart erforderlich"
   ],
   "download_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip"
 }
