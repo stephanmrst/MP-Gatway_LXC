@@ -74,6 +74,14 @@ def restore_config(file_storage, allowed_files, add_log_entry, redirect):
                 clean_name = os.path.basename(filename)
 
                 if clean_name not in allowed_files:
+                    if clean_name in ("config.json","monitor_settings.json","udp_presets.json"):
+                        target_path=os.path.join("/etc/mp-gateway",clean_name)
+                        if not os.path.exists("/etc/mp-gateway"):
+                            target_path=os.path.join(os.getcwd(),clean_name)
+                        with open(target_path,"wb") as f:
+                            f.write(zf.read(filename))
+                        add_log_entry(f"Restore: {clean_name} wiederhergestellt")
+                        continue
                     add_log_entry(f"Restore: {filename} ignoriert")
                     continue
 

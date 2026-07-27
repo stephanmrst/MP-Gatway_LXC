@@ -1,3 +1,8 @@
+## 35.1.1
+- Backup-Restore übernimmt `config.json` einschließlich Loxone- und OpenCCU-Einstellungen.
+- `monitor_settings.json` und `udp_presets.json` werden beim Restore wiederhergestellt.
+- systemd-Service enthält dauerhaft `PYTHONPATH=/opt/mp-gateway/app`.
+
 ## 35.1.0
 - Debian-13-LXC-Installer und systemd-Service
 - persistente Linux-Verzeichnisse für Konfiguration, Daten und Backups
