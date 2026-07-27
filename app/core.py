@@ -4792,7 +4792,7 @@ def settings_content(config, notice=""):
     <div class="card" style="width:min(520px,100%); margin:0; text-align:center; box-shadow:0 18px 60px rgba(0,0,0,.45);">
         <h2 class="section-title">Wiederherstellung erfolgreich</h2>
         <p>Die Konfiguration wurde übernommen. MP-Gateway wird neu gestartet.</p>
-        <p class="small" id="restore-status">Warte auf den Neustart …</p>
+        <p class="small" id="restore-status">Konfiguration wird übernommen …</p>
     </div>
 </div>
 <script>
@@ -12154,29 +12154,24 @@ def restore_config():
 
     allowed_files = get_backup_files()
 
-    def _restart_after_restore():
-        # Kein sudo/systemctl nötig: Der laufende Python-Prozess ersetzt sich
-        # nach Abschluss der HTTP-Antwort selbst. Dadurch funktioniert der
-        # Neustart auch mit NoNewPrivileges im LXC sowie unter Docker.
-        def _exec_restart():
-            time.sleep(2.0)
-            try:
-                os.execv(sys.executable, [sys.executable, "-m", "app.main"])
-            except Exception as exc:
-                add_log_entry(f"Restore Prozess-Neustart Fehler: {exc}")
-
-        threading.Thread(
-            target=_exec_restart,
-            name="restore-process-restart",
-            daemon=True,
-        ).start()
+    def _reload_after_restore():
+        # config.load_config() liest bewusst bei jedem Aufruf frisch von Platte.
+        # Nach dem Restore initialisieren wir nur die laufende Bridge neu; ein
+        # Prozess-/Container-Neustart ist weder unter LXC noch Docker nötig.
+        restored_config = load_config()
+        loxone_host = str(restored_config.get("loxone", {}).get("host", "") or "").strip()
+        openccu_host = str(restored_config.get("openccu", {}).get("host", "") or "").strip()
+        add_log_entry(
+            f"Restore Konfiguration neu geladen: Loxone={loxone_host or '-'}, OpenCCU={openccu_host or '-'}"
+        )
+        restart_bridge_async()
 
     return backup_service.restore_config(
         file,
         allowed_files,
         add_log_entry,
         redirect,
-        post_restore=_restart_after_restore,
+        post_restore=_reload_after_restore,
     )
 
 

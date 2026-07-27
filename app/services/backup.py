@@ -92,7 +92,7 @@ def restore_config(file_storage, allowed_files, add_log_entry, redirect, post_re
         if post_restore is not None:
             try:
                 post_restore()
-                add_log_entry("Konfiguration wird neu geladen – MP-Gateway startet automatisch neu")
+                add_log_entry("Konfiguration wurde neu geladen")
             except Exception as e:
                 add_log_entry(f"Restore Neustart Fehler: {e}")
 

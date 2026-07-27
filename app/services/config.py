@@ -4,7 +4,10 @@ import re
 import threading
 from pathlib import Path
 
-from engine import port
+try:
+    from app.engine import port
+except ModuleNotFoundError:
+    from engine import port
 
 
 APP_ROOT = str(port.APP_ROOT)

@@ -1,15 +1,16 @@
 {
   "product": "MP-Gateway",
-  "version": "35.1.7",
+  "version": "35.1.8",
   "minimum_version": "34.4.0",
   "release_date": "2026-07-27",
   "zip_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip",
   "sha256": "",
   "changelog": [
-    "Restore schreibt gleichnamige Konfigurationsdateien vorrangig nach /etc/mp-gateway",
-    "config.json wird nicht mehr versehentlich in das Programmverzeichnis restauriert",
-    "Restore-Log zeigt den tatsächlichen Zielpfad jeder Datei",
-    "Erfolgsdialog und automatischer Wechsel zum Dashboard bleiben erhalten"
+    "Korrigiert die getrennten Modulinstanzen von app.engine.port und engine.port im LXC",
+    "config.json wird jetzt von Restore und Laufzeit garantiert aus demselben Konfigurationsverzeichnis gelesen",
+    "Loxone- und OpenCCU-Einstellungen werden nach Restore live neu geladen",
+    "Kein Prozess-, Docker- oder LXC-Neustart mehr nach Wiederherstellung",
+    "Erfolgsdialog und Wechsel zum Dashboard bleiben erhalten"
   ],
   "download_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip"
 }

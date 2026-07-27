@@ -1,3 +1,10 @@
+## 35.1.8 - 2026-07-27
+
+- Kritischer LXC-Pfadfehler behoben: `services.config` verwendet jetzt dieselbe `app.engine.port`-Instanz wie die Anwendung.
+- Restore und Laufzeit lesen `config.json` dadurch aus demselben Verzeichnis (`/etc/mp-gateway`).
+- Loxone und OpenCCU werden nach Restore live neu geladen; kein Prozessneustart mehr.
+- Docker-Verhalten bleibt unverändert und funktionsfähig.
+
 ## 35.1.7
 
 - Restore-Zielpfade korrigiert: CONFIG_DIR hat nun Vorrang vor DATA_DIR und Programmverzeichnis.
