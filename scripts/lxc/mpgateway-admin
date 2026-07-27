@@ -1,0 +1,97 @@
+#!/bin/sh
+set -eu
+
+SSHD_DROPIN="/etc/ssh/sshd_config.d/90-mp-gateway-root-password.conf"
+
+json_escape() {
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/[[:cntrl:]]/ /g'
+}
+
+reply() {
+    ok="$1"; enabled="$2"; available="$3"; password_set="$4"; message="$5"
+    printf '{"ok":%s,"enabled":%s,"available":%s,"password_set":%s,"message":"%s"}\n' \
+        "$ok" "$enabled" "$available" "$password_set" "$(json_escape "$message")"
+}
+
+root_password_set() {
+    state="$(passwd -S root 2>/dev/null | awk '{print $2}' || true)"
+    [ "$state" = "P" ]
+}
+
+validate_reload() {
+    if ! /usr/sbin/sshd -t; then
+        return 1
+    fi
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || return 1
+    else
+        service ssh reload 2>/dev/null || return 1
+    fi
+}
+
+status() {
+    if [ ! -x /usr/sbin/sshd ]; then
+        reply false false false false "OpenSSH-Server ist nicht installiert"
+        exit 0
+    fi
+    enabled=false
+    if [ -f "$SSHD_DROPIN" ] && grep -Eq '^[[:space:]]*PermitRootLogin[[:space:]]+yes([[:space:]]|$)' "$SSHD_DROPIN"; then
+        enabled=true
+    fi
+    pset=false; root_password_set && pset=true
+    reply true "$enabled" true "$pset" "SSH-Verwaltung verfügbar"
+}
+
+enable() {
+    install -d -m 0755 /etc/ssh/sshd_config.d
+    old=""
+    [ -f "$SSHD_DROPIN" ] && old="$(cat "$SSHD_DROPIN")"
+    cat > "$SSHD_DROPIN" <<'EOF'
+# Managed by MP-Gateway. Manual changes may be overwritten.
+PermitRootLogin yes
+Match User root
+    PasswordAuthentication yes
+EOF
+    chmod 0644 "$SSHD_DROPIN"
+    if ! validate_reload; then
+        if [ -n "$old" ]; then printf '%s\n' "$old" > "$SSHD_DROPIN"; else rm -f "$SSHD_DROPIN"; fi
+        /usr/sbin/sshd -t >/dev/null 2>&1 && (systemctl reload ssh 2>/dev/null || true)
+        reply false false true false "SSH-Konfiguration war ungültig und wurde zurückgerollt"
+        exit 1
+    fi
+    pset=false; root_password_set && pset=true
+    if [ "$pset" = true ]; then
+        reply true true true true "Root-Login per SSH-Passwort ist aktiviert"
+    else
+        reply true true true false "Zugriff aktiviert, aber für root ist noch kein Passwort gesetzt"
+    fi
+}
+
+disable() {
+    install -d -m 0755 /etc/ssh/sshd_config.d
+    old=""
+    [ -f "$SSHD_DROPIN" ] && old="$(cat "$SSHD_DROPIN")"
+    cat > "$SSHD_DROPIN" <<'EOF'
+# Managed by MP-Gateway. SSH-Schlüssel bleiben für root erlaubt.
+PermitRootLogin prohibit-password
+Match User root
+    PasswordAuthentication no
+EOF
+    chmod 0644 "$SSHD_DROPIN"
+    if ! validate_reload; then
+        if [ -n "$old" ]; then printf '%s\n' "$old" > "$SSHD_DROPIN"; else rm -f "$SSHD_DROPIN"; fi
+        /usr/sbin/sshd -t >/dev/null 2>&1 && (systemctl reload ssh 2>/dev/null || true)
+        reply false true true false "SSH-Konfiguration war ungültig und wurde zurückgerollt"
+        exit 1
+    fi
+    pset=false; root_password_set && pset=true
+    reply true false true "$pset" "Root-Login per SSH-Passwort ist deaktiviert; SSH-Schlüssel bleiben erlaubt"
+}
+
+[ "${1:-}" = "ssh-root-password" ] || { reply false false false false "Unbekannte Aktion"; exit 2; }
+case "${2:-}" in
+    status) status ;;
+    enable) enable ;;
+    disable) disable ;;
+    *) reply false false true false "Unbekannte SSH-Aktion"; exit 2 ;;
+esac

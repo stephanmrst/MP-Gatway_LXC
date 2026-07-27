@@ -1,0 +1,229 @@
+:root {
+  --mp-sidebar-width: 210px;
+  --mp-sidebar-bg: #171d23;
+  --mp-sidebar-bg-strong: #151a20;
+  --mp-sidebar-border: #2a333c;
+  --mp-sidebar-text: #f4f7fb;
+  --mp-sidebar-muted: #b8c1cc;
+  --mp-sidebar-active: #5f686f;
+  --mp-sidebar-active-accent: #7CFF75;
+}
+
+.mp-sidebar {
+  background: var(--mp-sidebar-bg);
+  color: var(--mp-sidebar-text);
+  border-right: 1px solid var(--mp-sidebar-border);
+  width: var(--mp-sidebar-width);
+  min-width: var(--mp-sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.mp-sidebar-header {
+  min-height: 92px;
+  padding: 18px 14px 14px;
+  background: var(--mp-sidebar-bg-strong);
+  border-bottom: 1px solid var(--mp-sidebar-border);
+}
+
+.mp-sidebar-title {
+  margin: 0;
+  color: var(--mp-sidebar-active-accent);
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.mp-sidebar-subtitle {
+  margin-top: 5px;
+  color: var(--mp-sidebar-muted);
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.mp-sidebar-status {
+  margin-top: 8px;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.mp-sidebar-status b {
+  color: var(--mp-sidebar-active-accent);
+}
+
+.mp-sidebar-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 11px;
+}
+
+.mp-sidebar-actions button {
+  height: 30px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--mp-sidebar-active);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mp-sidebar-actions button:hover {
+  background: #727d85;
+}
+
+.mp-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 14px;
+}
+
+.mp-nav-group-title {
+  margin: 8px 2px 2px;
+  color: var(--mp-sidebar-muted);
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.mp-nav-group-title:first-child {
+  margin-top: 0;
+}
+
+.mp-nav-link {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 4px;
+  color: #fff;
+  text-decoration: none;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.mp-nav-link:hover {
+  background: var(--mp-sidebar-active);
+}
+
+.mp-nav-link.disabled {
+  color: #68737f;
+  background: transparent;
+  cursor: default;
+  opacity: .68;
+}
+
+.mp-nav-link.disabled:hover {
+  background: transparent;
+}
+
+.mp-nav-link.active {
+  background: var(--mp-sidebar-active);
+  box-shadow: inset 4px 0 0 var(--mp-sidebar-active-accent), 0 0 0 1px rgba(124,255,117,.10);
+}
+
+.mp-nav-spacer {
+  height: 8px;
+}
+
+.mp-sidebar-footer {
+  margin-top: auto;
+  padding: 12px 14px;
+  border-top: 1px solid var(--mp-sidebar-border);
+  color: var(--mp-sidebar-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+@media (max-width: 850px) {
+  .mp-sidebar {
+    width: 100%;
+    min-width: 0;
+    min-height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--mp-sidebar-border);
+  }
+
+  .mp-sidebar-header {
+    min-height: auto;
+  }
+
+  .mp-sidebar-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+.mp-update-footer {
+  display: grid;
+  grid-template-columns: auto 10px;
+  justify-content: start;
+  align-items: center;
+  column-gap: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+
+.mp-update-footer:hover {
+  background: rgba(255, 255, 255, .035);
+  color: var(--mp-sidebar-text);
+}
+
+.mp-update-version {
+  white-space: nowrap;
+}
+
+.mp-update-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  background: #77818b;
+  box-shadow: 0 0 5px rgba(119, 129, 139, .45);
+}
+
+.mp-update-dot--current {
+  background: #2ecc71;
+  box-shadow: 0 0 6px rgba(46, 204, 113, .7);
+}
+
+.mp-update-dot--available {
+  background: #f39c12;
+  box-shadow: 0 0 7px rgba(243, 156, 18, .75);
+  animation: mp-update-pulse 3s ease-in-out infinite;
+}
+
+.mp-update-dot--error {
+  background: #e74c3c;
+  box-shadow: 0 0 6px rgba(231, 76, 60, .7);
+}
+
+.mp-update-note {
+  grid-column: 1 / -1;
+  min-height: 0;
+  margin-top: 2px;
+  color: #f39c12;
+  font-size: 10px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.mp-update-dot--error + .mp-update-note {
+  color: #e76a5f;
+}
+
+@keyframes mp-update-pulse {
+  0%, 100% { opacity: .72; transform: scale(.92); }
+  50% { opacity: 1; transform: scale(1.12); }
+}

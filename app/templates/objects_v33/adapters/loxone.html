@@ -1,0 +1,226 @@
+<style>
+  .loxone-layout { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; }
+  .loxone-box { border:1px solid #344150; background:#10171e; border-radius:6px; padding:12px; }
+  .loxone-box h3 { margin:0 0 10px; font-size:15px; }
+  .loxone-grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+  .loxone-box .field-span-2 { grid-column:1 / -1; }
+  .loxone-note { margin-top:10px; color:#9fb0be; font-size:12px; }
+  .loxone-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .loxone-actions button { width:auto; }
+  .loxone-picker { margin-top:12px; border:1px solid #344150; background:#0f151b; border-radius:6px; padding:12px; }
+  .loxone-picker-toolbar { display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:8px; margin-bottom:10px; }
+  .loxone-picker-table { width:100%; border-collapse:collapse; background:#121920; }
+  .loxone-picker-table th, .loxone-picker-table td { border-bottom:1px solid #26313c; padding:7px 8px; font-size:12px; }
+  .loxone-picker-table tr { cursor:pointer; }
+  .loxone-picker-table tr:hover { background:#1a2430; }
+  .loxone-picker-table tr.selected { background:#223143; }
+  .loxone-picker-empty { color:#9aa7b5; font-size:12px; padding:8px 0; }
+  .loxone-mini { color:#9aa7b5; font-size:12px; margin-top:6px; }
+</style>
+
+<label for="{{ adapter.protocol }}_source_uuid">Quelle UUID</label>
+<input id="{{ adapter.protocol }}_source_uuid" name="source_uuid" value="{{ adapter.source_uuid or adapter.uuid }}">
+
+<label for="{{ adapter.protocol }}_source_io">IO-Adresse</label>
+<input id="{{ adapter.protocol }}_source_io" name="source_io" value="{{ adapter.source_io or adapter.io_address }}">
+
+<label for="{{ adapter.protocol }}_source_category">Control-Typ</label>
+<input id="{{ adapter.protocol }}_source_category" name="source_category" value="{{ adapter.source_category or adapter.control_type }}">
+
+<label for="{{ adapter.protocol }}_source_name">Visu-Name</label>
+<input id="{{ adapter.protocol }}_source_name" name="source_name" value="{{ adapter.source_name or adapter.visu_name }}">
+
+<label for="{{ adapter.protocol }}_source_room">Raum</label>
+<input id="{{ adapter.protocol }}_source_room" name="source_room" value="{{ adapter.source_room or adapter.room }}">
+
+<label for="{{ adapter.protocol }}_unit">Einheit</label>
+<input id="{{ adapter.protocol }}_unit" name="unit" value="{{ adapter.unit }}">
+
+<div style="margin-top:18px;" class="loxone-box" data-loxone-target-root="{{ adapter.protocol }}">
+  <h3>Loxone Ziel</h3>
+  <label class="check" style="margin-top:0;">
+    <input type="checkbox" name="target_enabled" {% if adapter.target_enabled %}checked{% endif %}>
+    Loxone-Ziel aktiv
+  </label>
+  {% if adapter.target_enabled and not adapter.target_uuid %}
+    <div class="loxone-note">Kein Loxone-Ziel gewählt</div>
+  {% endif %}
+  <div class="loxone-grid">
+    <div>
+      <label for="{{ adapter.protocol }}_target_uuid">Ziel-UUID</label>
+      <input id="{{ adapter.protocol }}_target_uuid" name="target_uuid" value="{{ adapter.target_uuid }}" readonly>
+    </div>
+    <div>
+      <label for="{{ adapter.protocol }}_target_name">Ziel-Name</label>
+      <input id="{{ adapter.protocol }}_target_name" name="target_name" value="{{ adapter.target_name }}" readonly>
+    </div>
+    <div>
+      <label for="{{ adapter.protocol }}_target_room">Ziel-Raum</label>
+      <input id="{{ adapter.protocol }}_target_room" name="target_room" value="{{ adapter.target_room }}" readonly>
+    </div>
+    <div>
+      <label for="{{ adapter.protocol }}_target_category">Ziel-Kategorie</label>
+      <input id="{{ adapter.protocol }}_target_category" name="target_category" value="{{ adapter.target_category }}" readonly>
+    </div>
+    <div>
+      <label for="{{ adapter.protocol }}_target_type">Ziel-Typ</label>
+      <input id="{{ adapter.protocol }}_target_type" name="target_type" value="{{ adapter.target_type }}" readonly>
+    </div>
+    <div class="field-span-2">
+      <label>&nbsp;</label>
+      <div class="loxone-actions">
+        <button type="button" class="secondary" onclick="toggleLoxoneTargetPicker('{{ adapter.protocol }}')">Aus Loxone auswählen</button>
+        <button type="button" class="secondary" onclick="clearLoxoneTarget('{{ adapter.protocol }}')">Ziel leeren</button>
+      </div>
+      <div class="loxone-mini">Name, Raum, Kategorie und Typ werden aus dem Explorer übernommen.</div>
+    </div>
+  </div>
+
+  <div id="{{ adapter.protocol }}_target_picker" class="loxone-picker" hidden data-loxone-target-options='{{ loxone_target_options|tojson }}'>
+    <div class="loxone-picker-toolbar">
+      <input type="search" id="{{ adapter.protocol }}_target_search" placeholder="Name / Text">
+      <input type="search" id="{{ adapter.protocol }}_target_room_filter" placeholder="Raum">
+      <input type="search" id="{{ adapter.protocol }}_target_category_filter" placeholder="Kategorie">
+      <input type="search" id="{{ adapter.protocol }}_target_type_filter" placeholder="Typ">
+    </div>
+    <div id="{{ adapter.protocol }}_target_picker_empty" class="loxone-picker-empty" hidden>Keine passenden Ziele gefunden.</div>
+    <table class="loxone-picker-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Raum</th>
+          <th>Kategorie</th>
+          <th>Typ</th>
+          <th>UUID</th>
+        </tr>
+      </thead>
+      <tbody id="{{ adapter.protocol }}_target_picker_rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function() {
+  const rootId = "{{ adapter.protocol }}_target_root";
+  const prefix = "{{ adapter.protocol }}";
+  const root = document.querySelector(`[data-loxone-target-root="${prefix}"]`);
+  if (!root) return;
+  const picker = document.getElementById(prefix + "_target_picker");
+  const rowsEl = document.getElementById(prefix + "_target_picker_rows");
+  const emptyEl = document.getElementById(prefix + "_target_picker_empty");
+  const options = JSON.parse(picker?.getAttribute("data-loxone-target-options") || "[]");
+  const inputs = {
+    search: document.getElementById(prefix + "_target_search"),
+    room: document.getElementById(prefix + "_target_room_filter"),
+    category: document.getElementById(prefix + "_target_category_filter"),
+    type: document.getElementById(prefix + "_target_type_filter"),
+    enabled: document.querySelector(`[data-loxone-target-root="${prefix}"] input[name="target_enabled"]`),
+    uuid: document.getElementById(prefix + "_target_uuid"),
+    name: document.getElementById(prefix + "_target_name"),
+    roomField: document.getElementById(prefix + "_target_room"),
+    categoryField: document.getElementById(prefix + "_target_category"),
+    typeField: document.getElementById(prefix + "_target_type"),
+  };
+
+  function normalize(value) {
+    return String(value || "").toLowerCase().trim();
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function currentFilters() {
+    return {
+      search: normalize(inputs.search?.value),
+      room: normalize(inputs.room?.value),
+      category: normalize(inputs.category?.value),
+      type: normalize(inputs.type?.value),
+    };
+  }
+
+  function matches(option, filters) {
+    const haystack = normalize([option.name, option.room, option.category, option.type, option.uuid].join(" "));
+    if (filters.search && !haystack.includes(filters.search)) return false;
+    if (filters.room && !normalize(option.room).includes(filters.room)) return false;
+    if (filters.category && !normalize(option.category).includes(filters.category)) return false;
+    if (filters.type && !normalize(option.type).includes(filters.type)) return false;
+    return true;
+  }
+
+  function setTarget(option) {
+    if (!option) return;
+    if (inputs.uuid) inputs.uuid.value = option.uuid || "";
+    if (inputs.name) inputs.name.value = option.name || "";
+    if (inputs.roomField) inputs.roomField.value = option.room || "";
+    if (inputs.categoryField) inputs.categoryField.value = option.category || "";
+    if (inputs.typeField) inputs.typeField.value = option.type || "";
+    if (inputs.enabled) inputs.enabled.checked = true;
+    renderRows();
+  }
+
+  function clearTarget() {
+    if (inputs.uuid) inputs.uuid.value = "";
+    if (inputs.name) inputs.name.value = "";
+    if (inputs.roomField) inputs.roomField.value = "";
+    if (inputs.categoryField) inputs.categoryField.value = "";
+    if (inputs.typeField) inputs.typeField.value = "";
+    renderRows();
+  }
+
+  function renderRows() {
+    const filters = currentFilters();
+    const filtered = options.filter(option => matches(option, filters));
+    if (!rowsEl) return;
+    rowsEl.innerHTML = "";
+    if (!filtered.length) {
+      if (emptyEl) emptyEl.hidden = false;
+      return;
+    }
+    if (emptyEl) emptyEl.hidden = true;
+    filtered.forEach(option => {
+      const row = document.createElement("tr");
+      if (inputs.uuid && inputs.uuid.value && inputs.uuid.value === option.uuid) {
+        row.classList.add("selected");
+      }
+      row.innerHTML = `
+        <td>${escapeHtml(option.name || "")}</td>
+        <td>${escapeHtml(option.room || "")}</td>
+        <td>${escapeHtml(option.category || "")}</td>
+        <td>${escapeHtml(option.type || "")}</td>
+        <td>${escapeHtml(option.uuid || "")}</td>
+      `;
+      row.addEventListener("click", () => {
+        setTarget(option);
+      });
+      rowsEl.appendChild(row);
+    });
+  }
+
+  window.toggleLoxoneTargetPicker = function() {
+    if (!picker) return;
+    picker.hidden = !picker.hidden;
+    if (!picker.hidden) renderRows();
+  };
+
+  window.clearLoxoneTarget = function() {
+    clearTarget();
+  };
+
+  [inputs.search, inputs.room, inputs.category, inputs.type].forEach(input => {
+    if (!input) return;
+    input.addEventListener("input", renderRows);
+  });
+
+  window.addEventListener("load", renderRows);
+})();
+</script>
+
+
+
+

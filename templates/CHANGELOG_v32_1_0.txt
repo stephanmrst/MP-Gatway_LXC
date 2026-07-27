@@ -1,0 +1,41 @@
+v32.0.0 - Technische Basis bereinigt
+- Technische Versionspraefixe aus Python-Dateinamen, Imports und internen Modulreferenzen entfernt.
+- Startkette nutzt app/engine/port.py und app/core.py.
+- Service-Module heissen config.py, mqtt.py und udp.py.
+- Keine UI-, Logik- oder Feature-Aenderungen.
+- Versionsstand auf 32.0.0 gesetzt.
+
+v32.2.2 - UTF-8 Encoding repariert
+- Flask liefert HTML mit charset=utf-8 aus und JSON ohne ASCII-Escaping.
+- Mojibake-/Umlautfehler in der Port-Oberflaeche korrigiert.
+- render_template_string HTML-Bloecke auf kaputte Sonderzeichen geprueft.
+- Keine Logik- oder UI-Aenderungen.
+- Versionsstand auf 32.2.2 gesetzt.
+
+v32.3.0 - UDP Service ausgelagert
+- UDP Listener, UDP-Sendefunktionen, MQTT->UDP, UDP->MQTT, UDP-Presets und UDP-Testhilfen in `app/services/udp.py` gekapselt.
+- App-Core verwendet den neuen UDP-Service weiter ueber die bestehenden Funktionsnamen und URLs.
+- Live-State fuer `mqtt2udp_last_seen`, `udp2mqtt_last_seen` und `udp_input_last_seen` liegt nun im Service.
+- Keine UI-Aenderungen und keine Config-Dateinamen geaendert.
+- Versionsstand auf 32.3.0 angehoben.
+
+v32.2.0 - MQTT Service ausgelagert
+- MQTT-Verbindungsaufbau, Brokerliste, MQTT-Monitor-State und MQTT-Testverbindung in `app/services/mqtt.py` gekapselt.
+- App-Core verwendet den neuen Service weiter mit dem bestehenden Routing-Callback.
+- MQTT-Monitor-Werte bleiben unter dem alten Namen `mqtt_monitor_values` verfuegbar.
+- Keine UI-Aenderungen und keine Config-Dateinamen geaendert.
+- Versionsstand auf 32.2.0 angehoben.
+
+v32.1.0 - Config Service ausgelagert
+- Config-/JSON-Dateifunktionen aus dem Port in app/services/config.py ausgelagert.
+- App-Core importiert und nutzt die v32-Service-Funktionen weiter unter den alten Funktionsnamen.
+- Keine UI-Aenderungen und keine Objektmanager-Logikaenderungen.
+- Versionsstand auf 32.1.0 angehoben.
+
+v32.0.1 - loxwebsocket optional
+- loxwebsocket, paho-mqtt und requests werden im Port optional abgefangen.
+- Fehlen optionale Bibliotheken, startet die Anwendung trotzdem vollstaendig.
+- Bridge-/Shell-Status zeigt bei fehlendem Loxone-Modul: Loxone: Bibliothek nicht installiert.
+- Startpruefung ergaenzt: Python, Flask, MQTT, Loxone, Requests sowie optionale KNX/Influx-Module.
+- requirements.txt fuer den Port ergaenzt.
+- Versionsstand auf 32.0.1 angehoben.

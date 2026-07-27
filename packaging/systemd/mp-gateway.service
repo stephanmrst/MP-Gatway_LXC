@@ -1,0 +1,24 @@
+[Unit]
+Description=MP-Gateway Multiprotokoll-Gateway
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=mpgateway
+Group=mpgateway
+WorkingDirectory=/opt/mp-gateway
+EnvironmentFile=-/etc/mp-gateway/mp-gateway.env
+ExecStart=/opt/mp-gateway/.venv/bin/python -m app.main
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGINT
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/etc/mp-gateway /var/lib/mp-gateway /var/backups/mp-gateway /var/log/mp-gateway /opt/mp-gateway
+
+[Install]
+WantedBy=multi-user.target

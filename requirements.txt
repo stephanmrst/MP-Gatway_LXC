@@ -1,0 +1,7 @@
+Flask
+MarkupSafe
+paho-mqtt
+requests
+loxwebsocket
+xknx
+influxdb-client
