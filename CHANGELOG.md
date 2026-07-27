@@ -1,3 +1,11 @@
+## 35.2.1
+
+- Restore beendet den laufenden Prozess nach erfolgreicher Antwort mit Exit-Code 75.
+- systemd (`Restart=on-failure`) und Docker (`restart: unless-stopped`) starten MP-Gateway dadurch vollständig neu.
+- Alle Hintergrunddienste lesen danach die wiederhergestellte Konfiguration frisch ein.
+- Erfolgsdialog und automatischer Wechsel zum Dashboard bleiben erhalten.
+- Lokal/Standalone muss MP-Gateway nach dem Restore manuell neu gestartet werden.
+
 ## 35.2.0 - 2026-07-27
 
 - OpenCCU-Runtime erhält nach Restore die wiederhergestellte Konfiguration direkt statt sie erneut über einen möglicherweise abweichenden Modulpfad zu laden.

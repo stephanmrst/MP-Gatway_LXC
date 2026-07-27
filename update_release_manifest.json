@@ -1,16 +1,15 @@
 {
   "product": "MP-Gateway",
-  "version": "35.2.0",
+  "version": "35.2.1",
   "minimum_version": "34.4.0",
   "release_date": "2026-07-27",
   "zip_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip",
   "sha256": "",
   "changelog": [
-    "OpenCCU-Runtime wird nach einer Wiederherstellung live mit config.json synchronisiert",
-    "Aktivierungsstatus, MQTT-Verbindung und Zugangsdaten werden ohne manuelles Aus- und Einschalten übernommen",
-    "OpenCCU XML-API-Gerätecache wird nach Restore neu eingelesen",
-    "Loxone-Bridge-Reload, Erfolgsdialog und Dashboard-Wechsel bleiben erhalten",
-    "Kein Prozess-, Docker- oder LXC-Neustart erforderlich"
+    "Nach einer Wiederherstellung wird MP-Gateway vollständig neu gestartet",
+    "systemd und Docker übernehmen den automatischen Neustart über Exit-Code 75",
+    "Loxone, OpenCCU und alle Hintergrunddienste starten anschließend mit der wiederhergestellten Konfiguration",
+    "Erfolgsfenster und automatischer Wechsel zum Dashboard bleiben erhalten"
   ],
   "download_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip"
 }

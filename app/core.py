@@ -12155,45 +12155,31 @@ def restore_config():
     allowed_files = get_backup_files()
 
     def _reload_after_restore():
-        # config.load_config() liest bewusst bei jedem Aufruf frisch von Platte.
-        # Nach dem Restore initialisieren wir nur die laufende Bridge neu; ein
-        # Prozess-/Container-Neustart ist weder unter LXC noch Docker nötig.
+        # Die Konfigurationsdateien sind zu diesem Zeitpunkt vollständig auf
+        # Platte geschrieben. Ein echter Prozessneustart ist erforderlich,
+        # damit alle Hintergrunddienste (Loxone, OpenCCU, MQTT usw.) garantiert
+        # aus demselben frischen Zustand initialisiert werden.
         restored_config = load_config()
         loxone_host = str(restored_config.get("loxone", {}).get("host", "") or "").strip()
         openccu_host = str(restored_config.get("openccu", {}).get("host", "") or "").strip()
         add_log_entry(
-            f"Restore Konfiguration neu geladen: Loxone={loxone_host or '-'}, OpenCCU={openccu_host or '-'}"
+            f"Restore Konfiguration gespeichert: Loxone={loxone_host or '-'}, OpenCCU={openccu_host or '-'}"
         )
+        add_log_entry("Restore abgeschlossen – MP-Gateway wird vollständig neu gestartet")
 
-        # Die Bridge (u. a. Loxone) übernimmt die wiederhergestellte
-        # Konfiguration bereits über ihren vorhandenen Live-Neustart.
-        restart_bridge_async()
+        def _exit_for_supervisor_restart():
+            # Exit-Code ungleich 0: systemd (Restart=on-failure) und Docker
+            # (restart: unless-stopped) starten den Prozess automatisch neu.
+            # Standalone/lokal beendet sich das Programm bewusst; dort ist ein
+            # manueller Neustart erforderlich.
+            time.sleep(2.0)
+            os._exit(75)
 
-        # OpenCCU besitzt eine eigene MQTT-Runtime außerhalb der Bridge.
-        # Nur das erneute Lesen von config.json ändert deren laufenden Zustand
-        # nicht. Daher dieselbe Reload-Logik ausführen, die auch beim Speichern
-        # der OpenCCU-Einstellungen verwendet wird. So werden enabled, Host,
-        # Zugangsdaten, Topic und Verbindung unmittelbar synchronisiert.
-        openccu_runtime = current_app.extensions.get("openccu_mqtt_runtime")
-        if openccu_runtime is not None:
-            restored_openccu = dict(restored_config.get("openccu", {}) or {})
-            # Die gerade wiederhergestellten Werte direkt an die Runtime geben.
-            # Damit sind Restore und manueller Speichervorgang identisch und
-            # unabhängig davon, über welche Modulinstanz config.json geladen wird.
-            openccu_runtime.reload(restored_openccu)
-            try:
-                openccu_runtime.metadata.refresh_async()
-            except Exception as exc:
-                add_log_entry(f"OpenCCU XML-API Aktualisierung Hinweis: {exc}")
-            state = "aktiviert" if restored_openccu.get("enabled") else "deaktiviert"
-            add_log_entry(
-                f"OpenCCU Runtime nach Restore {state}: "
-                f"MQTT={restored_openccu.get('mqtt_host') or restored_openccu.get('host') or '-'}:"
-                f"{restored_openccu.get('mqtt_port', 1883)} "
-                f"Topic={restored_openccu.get('topic_prefix') or 'device/status/#'}"
-            )
-        else:
-            add_log_entry("OpenCCU Runtime nach Restore nicht verfügbar")
+        threading.Thread(
+            target=_exit_for_supervisor_restart,
+            name="restore-process-restart",
+            daemon=True,
+        ).start()
 
     return backup_service.restore_config(
         file,
