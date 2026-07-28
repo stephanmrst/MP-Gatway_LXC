@@ -1,25 +1,14 @@
-# MP-Gateway 35.2.5 – Debian 13 LXC Installer
+# MP-Gateway 34.0.2
 
-## Schwerpunkt
+## Influx Explorer
 
-Diese Version ist für den ersten stabilen Live-Test als Debian-13-LXC vorbereitet.
+- zeigt ausschließlich Serien mit real vorhandenen Datenpunkten im ausgewählten Zeitraum
+- verwendet keine möglicherweise veralteten Measurement-/Tagwerte aus dem Influx-Schemaindex
+- gelöschte Topics verschwinden nach dem Aktualisieren vollständig
+- Measurements ohne `topic`-Tag bleiben separat sichtbar
 
-## Änderungen
+## Docker
 
-- vollständiger Installer für vorhandene Debian-13-LXC
-- Proxmox-Bootstrap zur automatischen Container-Erstellung
-- idempotente Neuinstallation mit Sicherung bestehender Konfiguration und Daten
-- automatische Prüfung von systemd-Dienst und Weboberfläche
-- reparierter Root-SSH-Admin-Helfer
-- Verwaltungsbefehle für Status, Healthcheck, Logs, Neustart, Version und Backup
-- MP-Gateway startet bei Update oder Restore zentral über systemd neu
-
-## Installation
-
-Im entpackten Release als `root`:
-
-```bash
-./scripts/lxc/install-debian13.sh
-```
-
-Details stehen in `LXC_DEBIAN13.md`.
+- Host-Netzwerk bleibt aktiv
+- persistentes Volume `mpgateway_data`
+- GitHub-sauberes Paket ohne lokale Konfigurationen und Laufzeitdaten

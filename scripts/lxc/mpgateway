@@ -1,53 +1,12 @@
-#!/usr/bin/env bash
-set -Eeuo pipefail
-
-SERVICE="mp-gateway"
-BACKUP_DIR="/var/backups/mp-gateway"
-
-need_root() {
-    if [[ ${EUID} -ne 0 ]]; then
-        exec sudo -n "$0" "$@"
-    fi
-}
-
+#!/bin/bash
+set -euo pipefail
 case "${1:-}" in
-    status)
-        systemctl status "$SERVICE" --no-pager
-        ;;
-    start|stop|restart)
-        action="$1"
-        shift
-        need_root "$action" "$@"
-        systemctl "$action" "$SERVICE"
-        systemctl is-active "$SERVICE" --no-pager || true
-        ;;
-    logs)
-        lines="${2:-200}"
-        [[ "$lines" =~ ^[0-9]+$ ]] || { echo "Zeilenzahl muss numerisch sein." >&2; exit 2; }
-        journalctl -u "$SERVICE" -n "$lines" --no-pager
-        ;;
-    follow)
-        journalctl -u "$SERVICE" -n "${2:-100}" -f
-        ;;
-    backup)
-        need_root backup
-        install -d -m 0750 -o mpgateway -g mpgateway "$BACKUP_DIR"
-        dest="$BACKUP_DIR/mp-gateway-$(date +%Y%m%d-%H%M%S).tar.gz"
-        tar -C / -czf "$dest" etc/mp-gateway var/lib/mp-gateway
-        chown mpgateway:mpgateway "$dest"
-        chmod 0640 "$dest"
-        echo "$dest"
-        ;;
-    version)
-        cat /opt/mp-gateway/VERSION
-        ;;
-    health)
-        systemctl is-active --quiet "$SERVICE"
-        curl -fsS --max-time 3 http://127.0.0.1:8099/ >/dev/null
-        echo "MP-Gateway läuft und die Weboberfläche antwortet."
-        ;;
-    *)
-        echo "Nutzung: mpgateway {status|start|stop|restart|logs [Zeilen]|follow [Zeilen]|backup|version|health}"
-        exit 2
-        ;;
+ status) systemctl status mp-gateway --no-pager ;;
+ start|stop|restart) systemctl "$1" mp-gateway ;;
+ logs) journalctl -u mp-gateway -n "${2:-200}" -f ;;
+ backup)
+   dest="/var/backups/mp-gateway/mp-gateway-$(date +%Y%m%d-%H%M%S).tar.gz"
+   tar -czf "$dest" /etc/mp-gateway /var/lib/mp-gateway 2>/dev/null
+   echo "$dest" ;;
+ *) echo "Nutzung: mpgateway {status|start|stop|restart|logs|backup}"; exit 2 ;;
 esac

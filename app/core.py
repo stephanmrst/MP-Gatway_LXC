@@ -2455,12 +2455,7 @@ def handle_mqtt_to_udp(topic, payload):
     )
 
 
-app = Flask(
-    __name__,
-    template_folder="../templates",
-    static_folder="../static",
-    static_url_path="/static",
-)
+app = Flask(__name__, static_folder="../static", static_url_path="/static")
 app.config["JSON_AS_ASCII"] = False
 if hasattr(app, "json"):
     app.json.ensure_ascii = False
