@@ -1,15 +1,16 @@
 {
   "product": "MP-Gateway",
-  "version": "35.2.2",
+  "version": "35.2.3",
   "minimum_version": "34.4.0",
-  "release_date": "2026-07-27",
-  "zip_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip",
+  "release_date": "2026-07-28",
+  "zip_url": "https://github.com/stephanmrst/MP-Gatway_LXC/releases/download/v35.2.3/MP-Gateway_35.2.3_LXC_Debian13_Stable.zip",
   "sha256": "",
   "changelog": [
-    "Alte Restore-Neustart-Experimente und zusätzliche systemd-Units entfernt",
-    "Restore-Code auf Wiederherstellen plus zentralen Prozessneustart reduziert",
-    "Restore und Update verwenden jetzt denselben Neustartmechanismus",
-    "systemd und Docker starten MP-Gateway über Exit-Code 75 automatisch neu"
+    "Debian-13-LXC-Installer für den Live-Test fertiggestellt",
+    "Root-SSH-Admin-Helfer repariert",
+    "Neuinstallation sichert und erhält Konfiguration sowie Laufzeitdaten",
+    "Dienst und Weboberfläche werden nach der Installation automatisch geprüft",
+    "Proxmox-Bootstrap für DHCP und statische IP gehärtet"
   ],
-  "download_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip"
+  "download_url": "https://github.com/stephanmrst/MP-Gatway_LXC/releases/download/v35.2.3/MP-Gateway_35.2.3_LXC_Debian13_Stable.zip"
 }

@@ -1,3 +1,13 @@
+## 35.2.3 - 2026-07-28
+
+- Debian-13-LXC-Installer für Neuinstallation und erneute Installation gehärtet.
+- Defekten Admin-Helfer für den Root-SSH-Schalter repariert.
+- Dienststart, Weboberfläche und Abhängigkeiten werden nach der Installation automatisch geprüft.
+- Bestehende Konfigurations- und Laufzeitdaten bleiben bei erneuter Installation erhalten; vorher wird eine Sicherung angelegt.
+- Proxmox-Bootstrap unterstützt CTID, Speicher, Netzwerk und Release-URL über Umgebungsvariablen.
+- Verwaltungsbefehl `mpgateway` um Healthcheck, Version und getrennte Log-/Follow-Ausgabe erweitert.
+- Version und Release-Manifeste auf 35.2.3 angehoben.
+
 ## 35.2.2 - 2026-07-27
 
 - Alte Restore-Experimente entfernt: keine zusätzliche systemd Path-Unit, kein Admin-Helper-Neustart und kein direkter `systemctl`-Aufruf mehr.
