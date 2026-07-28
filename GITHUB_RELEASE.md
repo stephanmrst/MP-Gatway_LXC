@@ -1,4 +1,4 @@
-# MP-Gateway 35.2.3 – Debian 13 LXC Installer
+# MP-Gateway 35.2.5 – Debian 13 LXC Installer
 
 ## Schwerpunkt
 

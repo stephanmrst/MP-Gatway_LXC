@@ -41,6 +41,8 @@ VERSION="$(tr -d '[:space:]' < "$ROOT_DIR/VERSION")"
 
 info "MP-Gateway ${VERSION} auf Debian installieren"
 export DEBIAN_FRONTEND=noninteractive
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
 apt-get update
 apt-get install -y --no-install-recommends \
     python3 python3-venv python3-pip openssh-server sudo rsync curl ca-certificates
@@ -117,12 +119,32 @@ done
 systemctl is-active --quiet "$SERVICE_NAME" || fail "MP-Gateway wurde nicht aktiv."
 
 if command -v curl >/dev/null 2>&1; then
-    for _ in {1..30}; do
-        curl -fsS --max-time 2 http://127.0.0.1:8099/ >/dev/null 2>&1 && break
+    HEALTH_URL="http://127.0.0.1:8099/startup_status"
+    DASHBOARD_URL="http://127.0.0.1:8099/"
+
+    for _ in {1..45}; do
+        curl -fsS --max-time 2 "$HEALTH_URL" >/dev/null 2>&1 && break
         sleep 1
     done
-    curl -fsS --max-time 3 http://127.0.0.1:8099/ >/dev/null || \
-        fail "Der Dienst läuft, aber die Weboberfläche auf Port 8099 antwortet nicht."
+
+    if ! curl -fsS --max-time 3 "$HEALTH_URL" >/dev/null 2>&1; then
+        printf '
+Letzte Meldungen des MP-Gateway-Dienstes:
+' >&2
+        journalctl -u "$SERVICE_NAME" -n 80 --no-pager >&2 || true
+        fail "Der Dienst läuft, aber der interne Status-Endpunkt auf Port 8099 antwortet nicht."
+    fi
+
+    dashboard_code="$(curl -sS -o /tmp/mp-gateway-dashboard-check.html -w '%{http_code}' --max-time 5 "$DASHBOARD_URL" || true)"
+    if [[ "$dashboard_code" != "200" ]]; then
+        printf '
+WARNUNG: Der Dienst ist gesund, aber das Dashboard antwortet mit HTTP %s.
+' "${dashboard_code:-000}" >&2
+        printf 'Die Installation wird nicht abgebrochen. Diagnose: journalctl -u %s -n 100 --no-pager
+' "$SERVICE_NAME" >&2
+        journalctl -u "$SERVICE_NAME" -n 40 --no-pager >&2 || true
+    fi
+    rm -f /tmp/mp-gateway-dashboard-check.html
 fi
 
 IP="$(hostname -I 2>/dev/null | awk '{print $1}')"

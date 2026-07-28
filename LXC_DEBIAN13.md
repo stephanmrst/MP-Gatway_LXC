@@ -1,4 +1,4 @@
-# MP-Gateway 35.2.3 auf Debian 13 LXC
+# MP-Gateway 35.2.5 auf Debian 13 LXC
 
 ## Variante A: vorhandenen Debian-13-LXC verwenden
 

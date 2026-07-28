@@ -1,9 +1,9 @@
 {
   "product": "MP-Gateway",
-  "version": "35.2.3",
+  "version": "35.2.5",
   "minimum_version": "34.4.0",
   "release_date": "2026-07-28",
-  "zip_url": "https://github.com/stephanmrst/MP-Gatway_LXC/releases/download/v35.2.3/MP-Gateway_35.2.3_LXC_Debian13_Stable.zip",
+  "zip_url": "https://github.com/stephanmrst/MP-Gatway_LXC/releases/download/v35.2.5/MP-Gateway_35.2.5_LXC_Debian13_Stable.zip",
   "sha256": "",
   "changelog": [
     "Debian-13-LXC-Installer für den Live-Test fertiggestellt",
@@ -12,5 +12,5 @@
     "Dienst und Weboberfläche werden nach der Installation automatisch geprüft",
     "Proxmox-Bootstrap für DHCP und statische IP gehärtet"
   ],
-  "download_url": "https://github.com/stephanmrst/MP-Gatway_LXC/releases/download/v35.2.3/MP-Gateway_35.2.3_LXC_Debian13_Stable.zip"
+  "download_url": "https://github.com/stephanmrst/MP-Gatway_LXC/releases/download/v35.2.5/MP-Gateway_35.2.5_LXC_Debian13_Stable.zip"
 }

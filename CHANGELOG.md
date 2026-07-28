@@ -1,3 +1,12 @@
+## 35.2.5 - 2026-07-28
+
+- Installer-Gesundheitsprüfung auf den internen Status-Endpunkt umgestellt.
+- Ein HTTP-500 des Dashboards bricht die Installation nicht mehr fälschlich ab.
+- Bei Start- oder Dashboard-Problemen werden automatisch relevante systemd-Logs ausgegeben.
+- Locale-Warnungen im frischen Debian-13-LXC durch `C.UTF-8` vermieden.
+- Wartezeit für den ersten Anwendungsstart auf 45 Sekunden erhöht.
+- Version und Release-Manifeste auf 35.2.5 angehoben.
+
 ## 35.2.3 - 2026-07-28
 
 - Debian-13-LXC-Installer für Neuinstallation und erneute Installation gehärtet.

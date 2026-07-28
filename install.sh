@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-VERSION="35.2.3"
+VERSION="35.2.4"
 CTID="${CTID:-150}"
 HOSTNAME="${HOSTNAME:-mp-gateway}"
 STORAGE="${STORAGE:-local-lvm}"
