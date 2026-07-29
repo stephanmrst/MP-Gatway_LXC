@@ -1,2 +1,0 @@
-# MP-Gatway_LXC
-

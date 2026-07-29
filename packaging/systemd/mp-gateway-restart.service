@@ -1,9 +1,0 @@
-[Unit]
-Description=MP-Gateway nach Restore verzögert neu starten
-After=mp-gateway.service
-
-[Service]
-Type=oneshot
-ExecStart=/bin/sleep 2
-ExecStart=/bin/rm -f /var/lib/mp-gateway/.restart-request
-ExecStart=/bin/systemctl restart mp-gateway.service
