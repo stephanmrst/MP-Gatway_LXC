@@ -1,0 +1,89 @@
+<aside class="mp-sidebar">
+  <div class="mp-sidebar-header">
+    <div class="mp-sidebar-title">{{ app_name }}</div>
+    <div class="mp-sidebar-subtitle">{{ app_subtitle }}</div>
+    <div class="mp-sidebar-status">Status: <b id="bridgeStatus">{{ status }}</b></div>
+    {% if iframe_shell %}
+    <div class="mp-sidebar-actions">
+      <button type="button" onclick="bridgeControl('/start')">Start</button>
+      <button type="button" onclick="bridgeControl('/stop')">Stopp</button>
+    </div>
+    {% endif %}
+  </div>
+
+  <nav class="mp-sidebar-nav">
+    <a class="mp-nav-link {{ 'active' if active == 'dashboard' else '' }}" href="{{ '/dashboard_embed' if iframe_shell else '/' }}" {% if iframe_shell %}target="contentFrame" onclick="setActive(this)"{% endif %}>Dashboard</a>
+    <a class="mp-nav-link {{ 'active' if active == 'objects_v33' else '' }}" href="/objects_v33" {% if iframe_shell %}target="contentFrame" onclick="setActive(this)"{% endif %}>Objektmanager</a>
+    <a class="mp-nav-link {{ 'active' if active == 'monitor' else '' }}" href="/monitor" {% if iframe_shell %}target="contentFrame" onclick="setActive(this)"{% endif %}>MQTT Explorer</a>
+    <a class="mp-nav-link {{ 'active' if active == 'loxone_monitor' else '' }}" href="/topics2" {% if iframe_shell %}target="contentFrame" onclick="setActive(this)"{% endif %}>Loxone Monitor</a>
+    <a class="mp-nav-link {{ 'active' if active == 'knx_monitor' else '' }}" href="/knx_monitor" {% if iframe_shell %}target="contentFrame" onclick="setActive(this)"{% endif %}>KNX Explorer</a>
+    <a class="mp-nav-link {{ 'active' if active == 'udp_explorer' else '' }}" href="/udp_explorer" {% if iframe_shell %}target="contentFrame" onclick="setActive(this)"{% endif %}>UDP Explorer</a>
+    <a class="mp-nav-link {{ 'active' if active == 'openccu_explorer' else '' }}" href="/openccu_explorer" {% if iframe_shell %}target="contentFrame" onclick="setActive(this)"{% endif %}>OpenCCU Explorer</a>
+    <a class="mp-nav-link {{ 'active' if active == 'global_search' else '' }}" href="{{ '/global_search' if iframe_shell else '/global_search_page' }}" {% if iframe_shell %}target="contentFrame" onclick="setActive(this)"{% endif %}>Suche</a>
+    <a class="mp-nav-link {{ 'active' if active == 'knx' else '' }}" href="/knx" {% if iframe_shell %}target="contentFrame" onclick="setActive(this)"{% endif %}>KNX Testcenter</a>
+    <a class="mp-nav-link {{ 'active' if active == 'conflict_scanner' else '' }}" href="{{ '/conflicts' if iframe_shell else '/conflicts_page' }}" {% if iframe_shell %}target="contentFrame" onclick="setActive(this)"{% endif %}>Konfig pr&uuml;fen</a>
+    <a class="mp-nav-link {{ 'active' if active == 'influx_explorer' else '' }}" href="/influx_explorer" {% if iframe_shell %}target="contentFrame" onclick="setActive(this)"{% endif %}>Influx Explorer</a>
+    <a class="mp-nav-link {{ 'active' if active == 'settings' else '' }}" href="{{ '/settings_embed' if iframe_shell else '/settings' }}" {% if iframe_shell %}target="contentFrame" onclick="setActive(this)"{% endif %}>Einstellungen</a>
+    <div class="mp-nav-group-title">Externe Dienste</div>
+    {{ sidebar_links_html|safe }}
+  </nav>
+
+  <a class="mp-sidebar-footer mp-update-footer"
+     href="{{ '/settings_embed' if iframe_shell else '/settings' }}"
+     {% if iframe_shell %}target="contentFrame" onclick="setActive(document.querySelector('.mp-nav-link[href=\"/settings_embed\"]') || this)"{% endif %}
+     id="mpUpdateFooter"
+     title="{{ update_sidebar.label }}">
+    <span class="mp-update-version">{{ app_name }} {{ app_version }}</span>
+    <span class="mp-update-dot mp-update-dot--{{ update_sidebar.state }}" id="mpUpdateDot" aria-hidden="true"></span>
+    <span class="mp-update-note" id="mpUpdateNote">{% if update_sidebar.state == 'available' %}Update verfügbar{% elif update_sidebar.state == 'error' %}Updateprüfung fehlgeschlagen{% endif %}</span>
+  </a>
+</aside>
+
+<script>
+(function () {
+  const footer = document.getElementById('mpUpdateFooter');
+  const dot = document.getElementById('mpUpdateDot');
+  const note = document.getElementById('mpUpdateNote');
+  if (!footer || !dot || !note) return;
+
+  function renderUpdateState(data) {
+    const state = ['current', 'available', 'error'].includes(data && data.state) ? data.state : 'unknown';
+    dot.className = 'mp-update-dot mp-update-dot--' + state;
+    note.textContent = state === 'available' ? 'Update verfügbar' : (state === 'error' ? 'Updateprüfung fehlgeschlagen' : '');
+    footer.title = (data && data.label) || 'Update noch nicht geprüft';
+  }
+
+  async function loadSidebarStatus() {
+    try {
+      const response = await fetch('/update/sidebar-status', {cache: 'no-store'});
+      if (!response.ok) throw new Error('status');
+      renderUpdateState(await response.json());
+    } catch (_) {
+      renderUpdateState({state: 'error', label: 'Updateprüfung fehlgeschlagen'});
+    }
+  }
+
+  async function automaticUpdateCheck() {
+    const key = 'mpGatewayLastAutomaticUpdateCheck';
+    const now = Date.now();
+    const last = Number(localStorage.getItem(key) || 0);
+    if (now - last < 24 * 60 * 60 * 1000) {
+      loadSidebarStatus();
+      return;
+    }
+    localStorage.setItem(key, String(now));
+    try {
+      const response = await fetch('/update/online/check', {method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}});
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.message || 'check');
+    } catch (_) {
+      // The persisted updater status is the source of truth.
+    }
+    loadSidebarStatus();
+  }
+
+  loadSidebarStatus();
+  window.setTimeout(automaticUpdateCheck, 30000);
+  window.setInterval(loadSidebarStatus, 60000);
+})();
+</script>

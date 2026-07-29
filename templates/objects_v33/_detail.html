@@ -1,0 +1,261 @@
+{% if notice %}
+  <div class="notice">{{ notice }}</div>
+{% endif %}
+{% if selected %}
+  {% set is_new = not selected.uuid %}
+  {% set object_def = selected %}
+  {% if errors %}
+    <div class="errors">
+      {% for error in errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="detail-card" data-object-detail="1">
+    <div class="detail-head">
+      <div>
+        <h1>{{ object_def.name or 'Neues Objekt' }}</h1>
+        <div class="uuid">MP-Gateway Objekt-UUID: {{ object_def.id or 'wird beim Speichern erzeugt' }}</div>
+      </div>
+      <div class="head-actions">
+        <span class="badge {% if object_def.enabled %}on{% else %}off{% endif %}">{{ 'Aktiv' if object_def.enabled else 'Inaktiv' }}</span>
+        <button form="objectGeneralForm" class="primary" type="submit">Speichern</button>
+        <button type="button" disabled>Duplizieren</button>
+        {% if object_def.id %}
+          <form method="post" action="{{ url_for('objects_v33.objects_v33_delete', object_uuid=object_def.id) }}" onsubmit="return submitObjectDelete(this)" data-delete-form="1">
+            <input type="hidden" name="selected_before" value="{{ object_def.id }}">
+            <button class="danger" type="submit">Loeschen</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="detail-workspace">
+    {% set configured_protocols = adapter_protocols(selected) %}
+    {% set preview_report = selected_route_report or {'main_routes': selected_preview, 'return_routes': []} %}
+    {% set preview_source = current_source_label(selected) if selected else 'unbekannt' %}
+    <aside class="object-explorer-panel" aria-label="Objekt-Explorer">
+      <section class="preview-section">
+        <div class="preview-title-row"><div class="preview-title">Live</div><button type="button" class="explorer-open" data-config-section="live">Details</button></div>
+        <div class="preview-live-value" id="previewLiveValue">-</div>
+        <div class="preview-live-meta"><span class="preview-dot"></span><span id="previewLiveStatus">warte auf Wert</span></div>
+        <div class="preview-live-meta"><span id="previewLiveSource">{{ preview_source }}</span><span>·</span><span id="previewLiveTimestamp">-</span></div>
+      </section>
+
+      <section class="preview-section">
+        <div class="preview-title-row"><div class="preview-title">Objekt</div><button type="button" class="explorer-open" data-config-section="general">Bearbeiten</button></div>
+        <div class="preview-object-name">{{ object_def.name or 'Neues Objekt' }}</div>
+        <div class="preview-kv"><span>Quelle</span><strong>{{ preview_source }}</strong></div>
+        <div class="preview-kv"><span>Datentyp</span><strong>{{ object_def.datatype or 'auto' }}</strong></div>
+        <div class="preview-kv"><span>Kategorie</span><strong>{{ object_def.category or '-' }}</strong></div>
+        <div class="preview-kv"><span>Raum</span><strong>{{ object_def.room or '-' }}</strong></div>
+      </section>
+
+      <section class="preview-section">
+        <div class="preview-title">Adapter</div>
+        <div class="preview-adapters">
+          {% if preview_source == 'OpenCCU' %}
+            <div class="preview-adapter preview-adapter-source active" aria-label="OpenCCU Quelle">
+              <span class="preview-adapter-dot"></span>
+              <span class="preview-adapter-copy"><strong>OPENCCU</strong><small>Quelle aktiv</small></span>
+              <span class="preview-adapter-transport">MQTT / CCU-Jack</span>
+            </div>
+          {% endif %}
+          {% for protocol in ['mqtt', 'loxone', 'udp', 'knx', 'influx'] %}
+            {% set is_active = protocol in configured_protocols %}
+            <button type="button" class="preview-adapter {% if is_active %}active{% endif %}" data-config-section="{{ protocol }}">
+              <span class="preview-adapter-dot"></span>
+              {{ protocol|upper }}
+              <small>{{ 'aktiv' if is_active else 'nicht aktiv' }}</small>
+            </button>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="preview-section">
+        <div class="preview-title-row"><div class="preview-title">Routing</div><button type="button" class="explorer-open" data-config-section="routing">Öffnen</button></div>
+        <div class="preview-routing">
+          {% if preview_report.main_routes %}
+            {% for route in preview_report.main_routes %}
+              <div class="preview-route-row">
+                <strong>{{ route.source }}</strong><span class="preview-route-arrow">→</span><div class="preview-route-target">{{ route.target }}</div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="preview-route-empty">Noch keine aktive Hauptroute.</div>
+          {% endif %}
+          {% if preview_report.return_routes %}
+            {% for route in preview_report.return_routes %}
+              <div class="preview-route-row">
+                <strong>{{ route.source }}</strong><span class="preview-route-arrow">↩</span><div class="preview-route-target">{{ route.target }}</div>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </section>
+    </aside>
+
+    <div class="tabs config-panel">
+      {% set active_tab = selected_tab|default('general') %}
+      <input id="tab-general" type="radio" name="tabs" {% if active_tab == 'general' %}checked{% endif %}>
+      <input id="tab-mqtt" type="radio" name="tabs" {% if active_tab == 'mqtt' %}checked{% endif %}>
+      <input id="tab-loxone" type="radio" name="tabs" {% if active_tab == 'loxone' %}checked{% endif %}>
+      <input id="tab-udp" type="radio" name="tabs" {% if active_tab == 'udp' %}checked{% endif %}>
+      <input id="tab-knx" type="radio" name="tabs" {% if active_tab == 'knx' %}checked{% endif %}>
+      <input id="tab-influx" type="radio" name="tabs" {% if active_tab == 'influx' %}checked{% endif %}>
+      <input id="tab-routing" type="radio" name="tabs" {% if active_tab == 'routing' %}checked{% endif %}>
+      <input id="tab-live" type="radio" name="tabs" {% if active_tab == 'live' %}checked{% endif %}>
+
+
+
+      <div class="panels">
+        <div class="tab-panel general-panel">
+          <form id="objectGeneralForm" method="post" action="{{ url_for('objects_v33.objects_v33_save') }}">
+            <input type="hidden" name="uuid" value="{{ object_def.id }}">
+            <input type="hidden" name="source_address" id="objectSourceAddress" value="">
+            <div class="grid">
+              <div class="field"><label for="name">Name</label><input id="name" name="name" value="{{ object_def.name }}" required></div>
+              <div class="field">
+                <label for="source_type">Quelle</label>
+                <select id="source_type" name="source_type">
+                  {% for value, label in [('openccu', 'OPENCCU'), ('loxone', 'LOXONE'), ('mqtt', 'MQTT'), ('udp', 'UDP'), ('knx', 'KNX')] %}
+                    <option value="{{ value }}" {% if selected_source_type == value %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="field"><label for="datatype">Datentyp</label><input id="datatype" name="datatype" value="{{ object_def.datatype }}"></div>
+              <div class="field"><label for="category">Kategorie</label><input id="category" name="category" value="{{ object_def.category }}"></div>
+              <div class="field"><label for="room">Raum</label><input id="room" name="room" value="{{ object_def.room }}"></div>
+              <div class="field"><label for="unit">Einheit</label><input id="unit" name="unit" value="{{ object_def.unit }}"></div>
+              <div class="field"><label for="icon">Icon</label><input id="icon" name="icon" value="{{ object_def.icon }}"></div>
+              <div class="field"><label for="scaling">Skalierung</label><input id="scaling" name="scaling" value="{{ object_def.scaling }}"></div>
+            </div>
+            <label for="notes" style="margin-top:12px;">Beschreibung</label>
+            <textarea id="notes" name="notes">{{ object_def.notes }}</textarea>
+            <label class="check">
+              <input type="checkbox" name="enabled" {% if object_def.enabled %}checked{% endif %}>
+              Aktiv
+            </label>
+          </form>
+        </div>
+
+        {% for adapter in selected_adapters %}
+          <div class="tab-panel {{ adapter.protocol }}-panel">
+            {% set adapter_action = url_for('objects_v33.objects_v33_adapter_save', object_uuid=object_def.id, protocol=adapter.protocol) if object_def.id else url_for('objects_v33.objects_v33_save') %}
+            <form class="adapter-form" method="post" action="{{ adapter_action }}">
+              {% if not object_def.id %}
+                <input type="hidden" name="source_type" value="{{ adapter.protocol }}">
+              {% endif %}
+              {% include adapter_template_name(adapter.protocol) %}
+              <div class="toolbar" style="margin-top:14px;">
+                <button type="submit" class="primary">Adapter speichern</button>
+              </div>
+            </form>
+          </div>
+        {% endfor %}
+
+        <div class="tab-panel routing-panel">
+          {% set route_report = selected_route_report or {'routes': selected_preview, 'main_routes': selected_preview, 'return_routes': [], 'missing_endpoints': [], 'errors': [], 'status': detail_status, 'current_source': '', 'current_source_address': ''} %}
+          {% set live_source_label = current_source_label(selected) if selected else 'unbekannt' %}
+          {% set live_source_address = current_source_address(selected) if selected else '' %}
+          {% set current_source_display = live_source_label if live_source_label and live_source_label != 'unbekannt' else (route_report.current_source or 'unbekannt') %}
+          {% set current_source_address_display = live_source_address if live_source_address else route_report.current_source_address %}
+          <div class="empty" style="margin-bottom:12px;">Aktuelle Quelle: {{ current_source_display }}{% if current_source_address_display %} <span class="count">{{ current_source_address_display }}</span>{% endif %}</div>
+
+          <div class="empty" style="margin-bottom:8px;">Haupt-Routen</div>
+          {% if route_report.main_routes %}
+            <table>
+              <thead>
+                <tr><th>Quelle</th><th>Ziel</th><th>Richtung</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {% for item in route_report.main_routes %}
+                  <tr>
+                    <td>{{ item.source }}{% if item.source_address %}<br><span class="count">{{ item.source_address }}</span>{% endif %}</td>
+                    <td>{{ item.target }}{% if item.target_address %}<br><span class="count">{{ item.target_address }}</span>{% endif %}</td>
+                    <td>{{ item.direction }}</td>
+                    <td><span class="badge on">{{ item.status }}</span></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <div class="empty">Keine Haupt-Routen vorhanden.</div>
+          {% endif %}
+
+          <div class="empty" style="margin:16px 0 8px;">Mögliche direkte Rück-Routen</div>
+          {% if route_report.return_routes %}
+            <table>
+              <thead>
+                <tr><th>Quelle</th><th>Ziel</th><th>Richtung</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {% for item in route_report.return_routes %}
+                  <tr>
+                    <td>{{ item.source }}{% if item.source_address %}<br><span class="count">{{ item.source_address }}</span>{% endif %}</td>
+                    <td>{{ item.target }}{% if item.target_address %}<br><span class="count">{{ item.target_address }}</span>{% endif %}</td>
+                    <td>{{ item.direction }}</td>
+                    <td><span class="badge on">{{ item.status }}</span></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <div class="empty">Keine direkten Rück-Routen vorhanden.</div>
+          {% endif %}
+          {% if route_report.missing_endpoints %}
+            <div class="empty" style="margin-top:12px;">Fehlende Endpunkte: {{ route_report.missing_endpoints|join(', ') }}</div>
+          {% endif %}
+          {% if route_report.errors %}
+            <div class="errors" style="margin-top:12px;">
+              {% for error in route_report.errors %}
+                <div>{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="tab-panel live-panel">
+          <div class="live-grid" data-selected-live="{{ object_def.id }}" data-configured-source="{{ live_source_label }}" data-configured-source-address="{{ live_source_address }}">
+            <div class="live-field">
+              <div class="live-label">Letzter Wert</div>
+              <div class="live-value" id="objectLiveValue">-</div>
+            </div>
+            <div class="live-field">
+              <div class="live-label">Einheit</div>
+              <div class="live-value" id="objectLiveUnit">{{ object_def.unit or '-' }}</div>
+            </div>
+            <div class="live-field">
+              <div class="live-label">Zeitstempel</div>
+              <div class="live-value" id="objectLiveTimestamp">-</div>
+            </div>
+            <div class="live-field">
+              <div class="live-label">Quelle / Adapter</div>
+              <div class="live-value" id="objectLiveSource">{{ live_source_label }}</div>
+            </div>
+            <div class="live-field">
+              <div class="live-label">Erkannter Endpunkt</div>
+              <div class="live-value" id="objectLiveEndpoint">{{ live_source_address if live_source_address else '-' }}</div>
+            </div>
+            <div class="live-field">
+              <div class="live-label">Letzte Ziel-Adapter</div>
+              <div class="live-value" id="objectLiveTargets">-</div>
+            </div>
+            <div class="live-field">
+              <div class="live-label">Status</div>
+              <div class="live-value" id="objectLiveStatus">unbekannt</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    </div>
+  </div>
+{% else %}
+  <div class="detail-card">
+    <div class="empty">Waehle links ein Objekt aus oder lege ein neues Objekt an.</div>
+  </div>
+{% endif %}

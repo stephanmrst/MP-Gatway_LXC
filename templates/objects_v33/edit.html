@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <title>Objektmanager</title>
+  <style>
+    body { margin:0; background:#10151b; color:#e8edf2; font-family:Arial, sans-serif; }
+    main { max-width:900px; margin:0 auto; padding:24px; }
+    h1 { font-size:24px; margin:0 0 20px; }
+    h2 { font-size:18px; margin:0 0 12px; }
+    label { display:block; margin:14px 0 6px; color:#b8c4d0; }
+    input, select { width:100%; box-sizing:border-box; background:#151c24; color:#e8edf2; border:1px solid #344150; border-radius:6px; padding:10px; font-size:14px; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .actions { display:flex; gap:10px; margin-top:20px; align-items:center; }
+    button, a.button { border:1px solid #344150; border-radius:6px; padding:10px 12px; background:#2f6f9f; color:#fff; text-decoration:none; cursor:pointer; font-size:14px; }
+    .secondary { background:#3f4a56; }
+    .errors { border:1px solid #7a3b3f; background:#321c20; border-radius:8px; padding:12px; margin-bottom:18px; }
+    .check { display:flex; gap:8px; align-items:center; margin-top:16px; }
+    .check input { width:auto; }
+    section { margin-top:28px; }
+    .adapter-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr)); gap:12px; }
+    .adapter-card { border:1px solid #283340; background:#151c24; border-radius:8px; padding:12px; }
+    .adapter-head { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:10px; }
+    .adapter-name { font-weight:bold; }
+    .adapter-meta { display:grid; gap:6px; margin:10px 0 12px; color:#b8c4d0; font-size:13px; }
+    .adapter-meta span { color:#e8edf2; }
+    .adapter-card label { font-size:13px; margin:10px 0 5px; }
+    .adapter-card input, .adapter-card select { padding:8px; font-size:13px; }
+    .pill { display:inline-block; border-radius:999px; padding:3px 8px; background:#35414e; font-size:12px; }
+    .pill.on { background:#2d6950; }
+    table { width:100%; border-collapse:collapse; background:#151c24; }
+    th, td { border-bottom:1px solid #283340; padding:9px; text-align:left; }
+    th { background:#1d2630; color:#aebdcc; font-size:13px; }
+    .empty { border:1px solid #283340; background:#151c24; border-radius:8px; padding:12px; color:#9aa7b5; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>{{ 'Neues Objekt' if is_new else 'Objekt bearbeiten' }}</h1>
+
+  {% if errors %}
+    <div class="errors">
+      {% for error in errors %}
+        <div>{{ error }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('objects_v33.objects_v33_save') }}">
+    <input type="hidden" name="uuid" value="{{ object_def.uuid }}">
+
+    <label for="key">Key</label>
+    <input id="key" name="key" value="{{ object_def.key or object_def.id }}">
+
+    <label for="name">Name</label>
+    <input id="name" name="name" value="{{ object_def.name }}" required>
+
+    <div class="row">
+      <div>
+        <label for="category">Kategorie</label>
+        <input id="category" name="category" value="{{ object_def.category }}">
+      </div>
+      <div>
+        <label for="type">Typ</label>
+        <input id="type" name="type" value="{{ object_def.type }}">
+      </div>
+    </div>
+
+    <label for="unit">Einheit</label>
+    <input id="unit" name="unit" value="{{ object_def.unit }}">
+
+    <label class="check">
+      <input type="checkbox" name="enabled" {% if object_def.enabled %}checked{% endif %}>
+      Aktiv
+    </label>
+
+    <div class="actions">
+      <button type="submit">Speichern</button>
+      <a class="button secondary" href="{{ url_for('objects_v33.objects_v33_index') }}">Zurück</a>
+    </div>
+  </form>
+
+  {% if not is_new %}
+    <section>
+      <h2>Adapter</h2>
+      <div class="adapter-grid">
+        {% for adapter in adapters %}
+          <form class="adapter-card" method="post" action="{{ url_for('objects_v33.objects_v33_adapter_save', object_uuid=object_def.id, protocol=adapter.protocol) }}">
+            <div class="adapter-head">
+              <div class="adapter-name">{{ adapter.protocol|upper }}</div>
+              <span class="pill {% if adapter.enabled %}on{% endif %}">{{ 'Aktiv' if adapter.enabled else 'Inaktiv' }}</span>
+            </div>
+            <div class="adapter-meta">
+              <div>Kurzstatus: <span>{{ 'Grunddaten gespeichert' if adapter.enabled else 'Nicht aktiv' }}</span></div>
+            </div>
+            {% include adapter_template_name(adapter.protocol) %}
+            <div class="actions">
+              <button type="submit">Adapter speichern</button>
+              <a class="button secondary" href="{{ url_for('objects_v33.objects_v33_adapter_edit', object_uuid=object_def.id, protocol=adapter.protocol) }}">Detail</a>
+            </div>
+          </form>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section>
+      <h2>Routing-Vorschau</h2>
+      {% if routing_preview %}
+        <table>
+          <thead>
+            <tr>
+              <th>Quelle</th>
+              <th>Ziel</th>
+              <th>Richtung</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in routing_preview %}
+              <tr>
+                <td>{{ item.source }}</td>
+                <td>{{ item.target }}</td>
+                <td>{{ item.direction }}</td>
+                <td><span class="pill on">{{ item.status }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty">Keine aktiven Adapter-Kombinationen für die Vorschau.</div>
+      {% endif %}
+    </section>
+  {% endif %}
+</main>
+</body>
+</html>

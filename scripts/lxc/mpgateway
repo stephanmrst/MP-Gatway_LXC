@@ -1,0 +1,12 @@
+#!/bin/bash
+set -euo pipefail
+case "${1:-}" in
+ status) systemctl status mp-gateway --no-pager ;;
+ start|stop|restart) systemctl "$1" mp-gateway ;;
+ logs) journalctl -u mp-gateway -n "${2:-200}" -f ;;
+ backup)
+   dest="/var/backups/mp-gateway/mp-gateway-$(date +%Y%m%d-%H%M%S).tar.gz"
+   tar -czf "$dest" /etc/mp-gateway /var/lib/mp-gateway 2>/dev/null
+   echo "$dest" ;;
+ *) echo "Nutzung: mpgateway {status|start|stop|restart|logs|backup}"; exit 2 ;;
+esac
