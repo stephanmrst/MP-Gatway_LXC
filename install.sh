@@ -7,6 +7,7 @@ ASSET_SUFFIX="${ASSET_SUFFIX:-_LXC_Debian13_Stable.zip}"
 TITLE="MP-Gateway LXC-Installer"
 BACKTITLE="MP-Gateway – Debian 13 LXC"
 LOG_FILE="/tmp/mp-gateway-install-$(date +%Y%m%d-%H%M%S).log"
+ACTION="install"
 
 DEFAULT_CTID="${CTID:-150}"
 DEFAULT_HOSTNAME="${MPG_HOSTNAME:-MP-Gateway}"
@@ -102,12 +103,105 @@ PYJSON
 }
 
 wt --title "Willkommen" --ok-label "Weiter" --msgbox \
-"Willkommen zum MP-Gateway-Installer.\n\nDieser Assistent erstellt einen Debian-13-LXC auf Proxmox und installiert automatisch das aktuelle Stable-Release.\n\nAlle Angaben können vor der Installation nochmals geprüft werden." 15 72
+"Willkommen zum MP-Gateway-Installer.\n\nDer Assistent kann einen neuen Debian-13-LXC installieren, ein vorhandenes MP-Gateway aktualisieren oder eine beschädigte Installation reparieren." 14 72
+
+if ! menu_page ACTION "Aktion" "Gewünschte Aktion auswählen:" 15 72 6 \
+  install "Neuen MP-Gateway-LXC installieren" \
+  update "Vorhandenen MP-Gateway-LXC aktualisieren" \
+  repair "Vorhandene Installation reparieren"; then
+  abort
+fi
 
 wt --title "Stable-Release" --infobox "Aktuelles MP-Gateway Stable-Release wird ermittelt ..." 8 62
 if ! resolve_latest_stable; then
   error_box "Das aktuelle Stable-Release oder das passende LXC-Asset konnte nicht ermittelt werden."
   exit 1
+fi
+
+if [[ "$ACTION" != "install" ]]; then
+  mapfile -t EXISTING_CTS < <(pct list 2>/dev/null | awk 'NR>1 {print $1 "|" $3 "|" $2}')
+  ((${#EXISTING_CTS[@]})) || { error_box "Es wurde kein vorhandener LXC-Container gefunden."; exit 1; }
+
+  ct_args=()
+  for entry in "${EXISTING_CTS[@]}"; do
+    IFS='|' read -r id name status <<<"$entry"
+    ct_args+=("$id" "$name ($status)")
+  done
+  TARGET_CTID="${EXISTING_CTS[0]%%|*}"
+  if ! menu_page TARGET_CTID "Container" "MP-Gateway-Container auswählen:" 18 72 10 "${ct_args[@]}"; then
+    abort
+  fi
+
+  CURRENT_VERSION="$(pct exec "$TARGET_CTID" -- sh -c 'cat /opt/mp-gateway/VERSION 2>/dev/null || printf unbekannt' 2>/dev/null || printf unbekannt)"
+  ACTION_TEXT="Aktualisierung"
+  [[ "$ACTION" == "repair" ]] && ACTION_TEXT="Reparatur"
+  CONFIRM_TEXT="$ACTION_TEXT für Container $TARGET_CTID\n\nInstallierte Version: $CURRENT_VERSION\nZielversion:          $RELEASE_VERSION"
+  [[ "$ACTION" == "repair" ]] && CONFIRM_TEXT+="\n\nDie Python-Umgebung und Systemdienste werden vollständig neu aufgebaut. Konfiguration und Daten bleiben erhalten."
+  if ! yesno_page "$ACTION_TEXT" "$CONFIRM_TEXT\n\nJetzt fortfahren?" "Starten" "Zurück"; then
+    abort
+  fi
+
+  export TARGET_CTID RELEASE_URL RELEASE_VERSION ACTION LOG_FILE
+  perform_maintenance() {
+    exec 3>&1
+    exec >>"$LOG_FILE" 2>&1
+    progress() { printf '%s\nXXX\n%s\nXXX\n' "$1" "$2" >&3; }
+
+    progress 5 "Container wird geprüft ..."
+    state="$(pct status "$TARGET_CTID" | awk '{print $2}')"
+    if [[ "$state" != "running" ]]; then
+      progress 10 "Container wird gestartet ..."
+      pct start "$TARGET_CTID"
+      sleep 3
+    fi
+
+    progress 20 "Stable-Release wird geladen ..."
+    pct exec "$TARGET_CTID" -- env RELEASE_URL="$RELEASE_URL" RELEASE_VERSION="$RELEASE_VERSION" ACTION="$ACTION" bash -c '
+set -Eeuo pipefail
+export DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8 LC_ALL=C.UTF-8
+apt-get update
+apt-get install -y curl unzip python3 python3-venv python3-pip ca-certificates openssh-server sudo rsync
+rm -rf /root/mp-gateway-maintenance /root/mpgateway.zip
+mkdir -p /root/mp-gateway-maintenance
+cd /root/mp-gateway-maintenance
+curl -fL --retry 3 --retry-delay 2 "$RELEASE_URL" -o /root/mpgateway.zip
+unzip -q /root/mpgateway.zip
+INSTALL_SCRIPT="$(find /root/mp-gateway-maintenance -type f -path "*/scripts/lxc/install-debian13.sh" -print -quit)"
+[[ -n "$INSTALL_SCRIPT" ]]
+PROJECT_ROOT="$(cd "$(dirname "$INSTALL_SCRIPT")/../.." && pwd)"
+if [[ "$ACTION" == repair ]]; then
+  systemctl stop mp-gateway 2>/dev/null || true
+  rm -rf /opt/mp-gateway/.venv
+fi
+chmod +x "$INSTALL_SCRIPT"
+bash "$INSTALL_SCRIPT"
+install -D -o root -g root -m 0755 "$PROJECT_ROOT/scripts/lxc/mpgateway-admin" /usr/local/lib/mp-gateway/mpgateway-admin
+install -o root -g root -m 0644 "$PROJECT_ROOT/packaging/systemd/mp-gateway.service" /etc/systemd/system/mp-gateway.service
+systemctl daemon-reload
+systemctl enable mp-gateway
+systemctl restart mp-gateway
+sleep 4
+systemctl is-active --quiet mp-gateway
+'
+    progress 90 "MP-Gateway-Dienst wird geprüft ..."
+    NEW_VERSION="$(pct exec "$TARGET_CTID" -- sh -c 'cat /opt/mp-gateway/VERSION 2>/dev/null || printf unbekannt')"
+    echo "$NEW_VERSION" >"${LOG_FILE}.version"
+    progress 100 "$ACTION_TEXT abgeschlossen."
+  }
+
+  set +e
+  perform_maintenance | wt --title "$ACTION_TEXT" --gauge "MP-Gateway wird bearbeitet ..." 10 76 0
+  rc=${PIPESTATUS[0]}; set -e
+  if [[ $rc != 0 ]]; then
+    tailtext="$(tail -n 18 "$LOG_FILE" 2>/dev/null || true)"
+    wt --title "$ACTION_TEXT fehlgeschlagen" --msgbox "Der Vorgang wurde mit Fehler $rc beendet.\n\nLetzte Meldungen:\n$tailtext\n\nVollständiges Protokoll:\n$LOG_FILE" 28 88
+    exit "$rc"
+  fi
+  NEW_VERSION="$(cat "${LOG_FILE}.version")"
+  wt --title "$ACTION_TEXT abgeschlossen" --msgbox "Container $TARGET_CTID wurde erfolgreich bearbeitet.\n\nVorherige Version: $CURRENT_VERSION\nAktuelle Version:  $NEW_VERSION\n\nInstallationsprotokoll:\n$LOG_FILE" 17 76
+  clear
+  printf 'MP-Gateway %s für Container %s erfolgreich abgeschlossen.\nAktuelle Version: %s\nProtokoll: %s\n' "$ACTION_TEXT" "$TARGET_CTID" "$NEW_VERSION" "$LOG_FILE"
+  exit 0
 fi
 
 mapfile -t ROOT_STORAGES < <(pvesm status -content rootdir 2>/dev/null | awk 'NR>1 && $3=="active" {print $1}')

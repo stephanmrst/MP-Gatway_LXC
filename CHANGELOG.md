@@ -1,3 +1,9 @@
+## 35.4.2 – 2026-07-30
+
+- Proxmox-LXC-Installer um die Aktionen **Aktualisieren** und **Reparieren** ergänzt.
+- Vorhandene Container können direkt ausgewählt und auf das aktuelle Stable-Release gebracht werden.
+- Reparatur baut die Python-Umgebung und Systemdienste neu auf; Konfiguration und Daten bleiben erhalten.
+
 ## 35.4.1 – 2026-07-30
 
 - LXC-/systemd-Updates löschen die virtuelle Python-Umgebung `.venv` nicht mehr.
