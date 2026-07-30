@@ -19,7 +19,7 @@ NoNewPrivileges=false
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=true
-ReadWritePaths=/etc/mp-gateway /var/lib/mp-gateway /var/backups/mp-gateway /var/log/mp-gateway /opt/mp-gateway
+ReadWritePaths=/etc/mp-gateway /etc/ssh/sshd_config.d /var/lib/mp-gateway /var/backups/mp-gateway /var/log/mp-gateway /opt/mp-gateway
 
 [Install]
 WantedBy=multi-user.target

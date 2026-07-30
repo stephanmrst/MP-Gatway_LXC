@@ -1,3 +1,13 @@
+## 35.3.1 - 2026-07-30
+
+- Neuer blauer Proxmox-/LXC-Installationsassistent auf Basis von `whiptail`.
+- Navigation mit Zurück, Weiter und Abbrechen sowie abschließender Zusammenfassung.
+- Auswahl von Storage, Netzwerk, Ressourcen, VLAN, Autostart und Root-SSH über Dialogfenster.
+- Fortschrittsanzeige und verständliche Fehleranzeige mit Installationsprotokoll.
+- Root-SSH lässt sich aus der Weboberfläche wieder zuverlässig aktivieren und deaktivieren.
+- Systemd-Sandbox gibt ausschließlich `/etc/ssh/sshd_config.d` für den Admin-Helper frei.
+- SSH-Konfiguration wird atomarm überschrieben, geprüft und anschließend neu geladen.
+
 ## 35.3.0 - 2026-07-27
 
 - Alte Restore-Experimente entfernt: keine zusätzliche systemd Path-Unit, kein Admin-Helper-Neustart und kein direkter `systemctl`-Aufruf mehr.

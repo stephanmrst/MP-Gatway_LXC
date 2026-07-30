@@ -22,25 +22,23 @@ enabled() {
 }
 
 reload_ssh() {
-    /usr/sbin/sshd -t &&
-    (systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null)
+    /usr/sbin/sshd -t || return 1
+    systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null
 }
 
 write_mode() {
     mode="$1"
-    install -d -m 0755 /etc/ssh/sshd_config.d
-    tmp="$(mktemp)"
-    trap 'rm -f "$tmp"' EXIT HUP INT TERM
+    mkdir -p /etc/ssh/sshd_config.d
 
     if [ "$mode" = "enable" ]; then
-        cat >"$tmp" <<'EOF'
+        cat >"$DROPIN" <<'EOF'
 # Managed by MP-Gateway.
 Match all
 PermitRootLogin yes
 PasswordAuthentication yes
 EOF
     else
-        cat >"$tmp" <<'EOF'
+        cat >"$DROPIN" <<'EOF'
 # Managed by MP-Gateway.
 Match all
 PermitRootLogin prohibit-password
@@ -48,7 +46,8 @@ PasswordAuthentication yes
 EOF
     fi
 
-    install -o root -g root -m 0644 "$tmp" "$DROPIN"
+    chown root:root "$DROPIN"
+    chmod 0644 "$DROPIN"
     reload_ssh
 }
 
@@ -57,7 +56,6 @@ status() {
         reply false false false false "OpenSSH-Server ist nicht installiert"
         exit 0
     }
-
     en=false
     pw=false
     enabled && en=true
@@ -66,9 +64,7 @@ status() {
 }
 
 case "${1:-}:${2:-}" in
-    ssh-root-password:status)
-        status
-        ;;
+    ssh-root-password:status) status ;;
     ssh-root-password:enable)
         if ! password_set; then
             reply false false true false "Für root ist kein Passwort gesetzt"
@@ -79,8 +75,7 @@ case "${1:-}:${2:-}" in
         ;;
     ssh-root-password:disable)
         write_mode disable
-        pw=false
-        password_set && pw=true
+        pw=false; password_set && pw=true
         reply true false true "$pw" "Root-Login per SSH-Passwort ist deaktiviert"
         ;;
     *)
