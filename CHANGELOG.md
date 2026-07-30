@@ -1,4 +1,11 @@
-# MP-Gateway 35.3.3
+# MP-Gateway 35.3.4
+
+## 35.3.4 - 2026-07-30
+
+- Root-Disk-Storage wird als Radioliste angezeigt; `local-lvm` ist nach Möglichkeit vorausgewählt.
+- Template-Storage wird als Radioliste angezeigt; `local` ist nach Möglichkeit vorausgewählt.
+- VLAN wurde in die gemeinsame Options-Checkliste verschoben und ist standardmäßig deaktiviert.
+- Die VLAN-ID wird nur abgefragt, wenn „VLAN verwenden“ aktiviert wurde.
 
 ## 35.3.3 - 2026-07-30
 

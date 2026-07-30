@@ -64,6 +64,13 @@ menu_page() {
     --extra-button --extra-label "Abbrechen" --menu "$prompt" "$height" "$width" "$listheight" "$@"
 }
 
+radiolist_page() {
+  local __var="$1" title="$2" prompt="$3" height="$4" width="$5" listheight="$6"; shift 6
+  run_dialog "$__var" --title "$title" --ok-label "Weiter" --cancel-label "Zurück" \
+    --extra-button --extra-label "Abbrechen" --no-items \
+    --radiolist "$prompt" "$height" "$width" "$listheight" "$@"
+}
+
 yesno_page() {
   local title="$1" text="$2" yeslabel="$3" nolabel="$4" default_choice="${5:-yes}" rc
   local default_args=()
@@ -110,13 +117,17 @@ mapfile -t BRIDGES < <(ip -o link show | awk -F': ' '$2 ~ /^vmbr[0-9]+(@.*)?$/ {
 ((${#TEMPLATE_STORAGES[@]})) || { error_box "Kein aktives Storage für LXC-Templates gefunden."; exit 1; }
 ((${#BRIDGES[@]})) || BRIDGES=(vmbr0)
 
-CTID="$DEFAULT_CTID"; HOSTNAME="$DEFAULT_HOSTNAME"; STORAGE="$DEFAULT_STORAGE"; TEMPLATE_STORAGE="$DEFAULT_TEMPLATE_STORAGE"
+CTID="$DEFAULT_CTID"; HOSTNAME="$DEFAULT_HOSTNAME"
+STORAGE="${ROOT_STORAGES[0]}"
+for s in "${ROOT_STORAGES[@]}"; do [[ "$s" == "$DEFAULT_STORAGE" ]] && STORAGE="$s"; done
+TEMPLATE_STORAGE="${TEMPLATE_STORAGES[0]}"
+for s in "${TEMPLATE_STORAGES[@]}"; do [[ "$s" == "$DEFAULT_TEMPLATE_STORAGE" ]] && TEMPLATE_STORAGE="$s"; done
 CORES="$DEFAULT_CORES"; MEMORY="$DEFAULT_MEMORY"; SWAP="$DEFAULT_SWAP"; DISK="$DEFAULT_DISK"; BRIDGE="$DEFAULT_BRIDGE"
-NET_MODE=dhcp; NET_IP="192.168.1.145/24"; GATEWAY="192.168.1.1"; VLAN_TAG=""; ONBOOT=1; ENABLE_ROOT_SSH=1
+NET_MODE=dhcp; NET_IP="192.168.1.145/24"; GATEWAY="192.168.1.1"; VLAN_TAG=""; USE_VLAN=0; ONBOOT=1; ENABLE_ROOT_SSH=1
 ROOT_PASSWORD=""; PAGE=1
 
 while true; do
-while (( PAGE <= 10 )); do
+while (( PAGE <= 9 )); do
   case $PAGE in
     1)
       if input_page CTID "Container" "Container-ID:" "$CTID"; then
@@ -130,11 +141,11 @@ while (( PAGE <= 10 )); do
         ((PAGE++))
       else ((PAGE--)); fi ;;
     3)
-      args=(); for s in "${ROOT_STORAGES[@]}"; do args+=("$s" "$([[ $s == "$DEFAULT_STORAGE" ]] && echo Standard || echo verfügbar)"); done
-      if menu_page STORAGE "Root-Disk" "Storage für die Container-Root-Disk auswählen:" 18 72 9 "${args[@]}"; then ((PAGE++)); else ((PAGE--)); fi ;;
+      args=(); for s in "${ROOT_STORAGES[@]}"; do args+=("$s" "" "$([[ $s == "$STORAGE" ]] && echo ON || echo OFF)"); done
+      if radiolist_page STORAGE "Root-Disk" "Storage für die Container-Root-Disk auswählen:" 18 72 9 "${args[@]}"; then ((PAGE++)); else ((PAGE--)); fi ;;
     4)
-      args=(); for s in "${TEMPLATE_STORAGES[@]}"; do args+=("$s" "$([[ $s == "$DEFAULT_TEMPLATE_STORAGE" ]] && echo Standard || echo verfügbar)"); done
-      if menu_page TEMPLATE_STORAGE "Debian-Template" "Storage für das Debian-13-Template auswählen:" 18 72 9 "${args[@]}"; then ((PAGE++)); else ((PAGE--)); fi ;;
+      args=(); for s in "${TEMPLATE_STORAGES[@]}"; do args+=("$s" "" "$([[ $s == "$TEMPLATE_STORAGE" ]] && echo ON || echo OFF)"); done
+      if radiolist_page TEMPLATE_STORAGE "Debian-Template" "Storage für das Debian-13-Template auswählen:" 18 72 9 "${args[@]}"; then ((PAGE++)); else ((PAGE--)); fi ;;
     5)
       FORM=""
       set +e
@@ -163,26 +174,30 @@ while (( PAGE <= 10 )); do
         ((PAGE++))
       else ((PAGE--)); fi ;;
     8)
-      if yesno_page "VLAN" "Soll der Container einem VLAN zugeordnet werden?" "Ja" "Nein" "no"; then
-        if input_page VLAN_TAG "VLAN" "VLAN-ID:" "${VLAN_TAG:-10}"; then
-          [[ "$VLAN_TAG" =~ ^[0-9]+$ ]] && ((VLAN_TAG>=1 && VLAN_TAG<=4094)) || { error_box "Die VLAN-ID muss zwischen 1 und 4094 liegen."; continue; }
-        else continue; fi
-      else VLAN_TAG=""; fi
-      ((PAGE++)) ;;
-    9)
       CHECKS=""
       set +e
       CHECKS="$(wt --title "Optionen" --ok-label "Weiter" --cancel-label "Zurück" --extra-button --extra-label "Abbrechen" \
-        --checklist "Gewünschte Optionen auswählen:" 15 72 5 \
+        --checklist "Gewünschte Optionen auswählen:" 16 72 6 \
         onboot "Container automatisch mit Proxmox starten" "$([[ $ONBOOT == 1 ]] && echo ON || echo OFF)" \
-        ssh "Root-Login per SSH-Passwort aktivieren" "$([[ $ENABLE_ROOT_SSH == 1 ]] && echo ON || echo OFF)" 3>&1 1>&2 2>&3)"; rc=$?
+        ssh "Root-Login per SSH-Passwort aktivieren" "$([[ $ENABLE_ROOT_SSH == 1 ]] && echo ON || echo OFF)" \
+        vlan "VLAN verwenden" "$([[ $USE_VLAN == 1 ]] && echo ON || echo OFF)" 3>&1 1>&2 2>&3)"; rc=$?
       set -e
       if [[ $rc == 0 ]]; then
         [[ "$CHECKS" == *onboot* ]] && ONBOOT=1 || ONBOOT=0
         [[ "$CHECKS" == *ssh* ]] && ENABLE_ROOT_SSH=1 || ENABLE_ROOT_SSH=0
+        if [[ "$CHECKS" == *vlan* ]]; then
+          USE_VLAN=1
+          if input_page VLAN_TAG "VLAN" "VLAN-ID:" "${VLAN_TAG:-10}"; then
+            [[ "$VLAN_TAG" =~ ^[0-9]+$ ]] && ((VLAN_TAG>=1 && VLAN_TAG<=4094)) || { error_box "Die VLAN-ID muss zwischen 1 und 4094 liegen."; continue; }
+          else
+            continue
+          fi
+        else
+          USE_VLAN=0; VLAN_TAG=""
+        fi
         ((PAGE++))
       elif [[ $rc == 1 ]]; then ((PAGE--)); else abort; fi ;;
-    10)
+    9)
       if password_page ROOT_PASSWORD "Root-Passwort" "Root-Passwort für den neuen LXC:"; then
         [[ -n "$ROOT_PASSWORD" ]] || { error_box "Das Passwort darf nicht leer sein."; continue; }
         CONFIRM=""; if ! password_page CONFIRM "Root-Passwort" "Root-Passwort wiederholen:"; then continue; fi
@@ -201,7 +216,7 @@ set +e
 wt --title "Zusammenfassung" --yes-label "Installieren" --no-label "Zurück" --extra-button --extra-label "Abbrechen" \
   --yesno "$SUMMARY\n\nContainer jetzt erstellen und MP-Gateway installieren?" 22 78
 rc=$?; set -e
-if [[ $rc == 1 ]]; then PAGE=9; continue; elif [[ $rc != 0 ]]; then abort; fi
+if [[ $rc == 1 ]]; then PAGE=8; continue; elif [[ $rc != 0 ]]; then abort; fi
 break
 done
 
