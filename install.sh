@@ -67,7 +67,7 @@ menu_page() {
 radiolist_page() {
   local __var="$1" title="$2" prompt="$3" height="$4" width="$5" listheight="$6"; shift 6
   run_dialog "$__var" --title "$title" --ok-label "Weiter" --cancel-label "Zurück" \
-    --extra-button --extra-label "Abbrechen" --no-items \
+    --extra-button --extra-label "Abbrechen" \
     --radiolist "$prompt" "$height" "$width" "$listheight" "$@"
 }
 
@@ -142,10 +142,16 @@ while (( PAGE <= 9 )); do
       else ((PAGE--)); fi ;;
     3)
       args=(); for s in "${ROOT_STORAGES[@]}"; do args+=("$s" "" "$([[ $s == "$STORAGE" ]] && echo ON || echo OFF)"); done
-      if radiolist_page STORAGE "Root-Disk" "Storage für die Container-Root-Disk auswählen:" 18 72 9 "${args[@]}"; then ((PAGE++)); else ((PAGE--)); fi ;;
+      if radiolist_page STORAGE "Root-Disk" "Storage für die Container-Root-Disk auswählen:" 18 72 9 "${args[@]}"; then
+        [[ -n "$STORAGE" ]] || { error_box "Bitte ein Storage für die Root-Disk auswählen."; continue; }
+        ((PAGE++))
+      else ((PAGE--)); fi ;;
     4)
       args=(); for s in "${TEMPLATE_STORAGES[@]}"; do args+=("$s" "" "$([[ $s == "$TEMPLATE_STORAGE" ]] && echo ON || echo OFF)"); done
-      if radiolist_page TEMPLATE_STORAGE "Debian-Template" "Storage für das Debian-13-Template auswählen:" 18 72 9 "${args[@]}"; then ((PAGE++)); else ((PAGE--)); fi ;;
+      if radiolist_page TEMPLATE_STORAGE "Debian-Template" "Storage für das Debian-13-Template auswählen:" 18 72 9 "${args[@]}"; then
+        [[ -n "$TEMPLATE_STORAGE" ]] || { error_box "Bitte ein Storage für das Debian-Template auswählen."; continue; }
+        ((PAGE++))
+      else ((PAGE--)); fi ;;
     5)
       FORM=""
       set +e
