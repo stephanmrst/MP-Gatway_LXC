@@ -1,6 +1,6 @@
 {
   "product": "MP-Gateway",
-  "version": "35.3.2",
+  "version": "35.3.3",
   "minimum_version": "34.4.0",
   "schema_version": 1,
   "restart_required": false,

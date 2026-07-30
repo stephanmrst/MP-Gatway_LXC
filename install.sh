@@ -65,10 +65,12 @@ menu_page() {
 }
 
 yesno_page() {
-  local title="$1" text="$2" yeslabel="$3" nolabel="$4" rc
+  local title="$1" text="$2" yeslabel="$3" nolabel="$4" default_choice="${5:-yes}" rc
+  local default_args=()
+  [[ "$default_choice" == "no" ]] && default_args+=(--defaultno)
   set +e
   wt --title "$title" --yes-label "$yeslabel" --no-label "$nolabel" \
-    --extra-button --extra-label "Abbrechen" --yesno "$text" 11 72
+    --extra-button --extra-label "Abbrechen" "${default_args[@]}" --yesno "$text" 11 72
   rc=$?; set -e
   case $rc in 0) return 0;; 1) return 1;; *) abort;; esac
 }
@@ -161,7 +163,7 @@ while (( PAGE <= 10 )); do
         ((PAGE++))
       else ((PAGE--)); fi ;;
     8)
-      if yesno_page "VLAN" "Soll der Container einem VLAN zugeordnet werden?" "Ja" "Nein"; then
+      if yesno_page "VLAN" "Soll der Container einem VLAN zugeordnet werden?" "Ja" "Nein" "no"; then
         if input_page VLAN_TAG "VLAN" "VLAN-ID:" "${VLAN_TAG:-10}"; then
           [[ "$VLAN_TAG" =~ ^[0-9]+$ ]] && ((VLAN_TAG>=1 && VLAN_TAG<=4094)) || { error_box "Die VLAN-ID muss zwischen 1 und 4094 liegen."; continue; }
         else continue; fi
