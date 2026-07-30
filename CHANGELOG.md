@@ -1,4 +1,11 @@
-# MP-Gateway 35.3.4
+# MP-Gateway 35.3.6
+
+## 35.3.6 - 2026-07-30
+
+- Radiolisten für Root-Disk und Debian-Template korrigiert.
+- Dialog-Statuswerte werden nun zuverlässig als `on` und `off` übergeben.
+- Vorauswahl bleibt `local-lvm` für Root-Disk und `local` für Templates, sofern vorhanden.
+- Keine Änderungen an der MP-Gateway-Anwendung.
 
 ## 35.3.4 - 2026-07-30
 
