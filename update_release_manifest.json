@@ -1,14 +1,14 @@
 {
   "product": "MP-Gateway",
-  "version": "35.4.0",
+  "version": "35.4.1",
   "minimum_version": "34.4.0",
   "release_date": "2026-07-30",
   "zip_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip",
   "sha256": "",
   "changelog": [
-    "GitHub Releases als einzige Online-Updatequelle",
-    "Auswahl einer bestimmten Stable-, Beta- oder beliebigen Release-Version",
-    "Downgrade und Neuinstallation ausgewählter Versionen mit Backup und Rollback"
+    "LXC-Update bewahrt die virtuelle Python-Umgebung .venv",
+    "Python-Abhängigkeiten werden vor dem Neustart in der bestehenden venv aktualisiert",
+    "Update und Downgrade starten unter systemd wieder zuverlässig"
   ],
   "download_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip"
 }

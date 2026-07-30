@@ -1,3 +1,9 @@
+## 35.4.1 – 2026-07-30
+
+- LXC-/systemd-Updates löschen die virtuelle Python-Umgebung `.venv` nicht mehr.
+- Abhängigkeiten aus `requirements.txt` werden vor dem Neustart in der vorhandenen venv aktualisiert.
+- Update und Downgrade starten den Dienst im LXC danach wieder zuverlässig.
+
 ## 35.4.0 – 2026-07-30
 
 - Online-Update vollständig auf GitHub Releases umgestellt.

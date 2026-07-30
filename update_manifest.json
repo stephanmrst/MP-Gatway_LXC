@@ -1,21 +1,22 @@
 {
   "product": "MP-Gateway",
-  "version": "35.4.0",
+  "version": "35.4.1",
   "minimum_version": "34.4.0",
   "schema_version": 1,
-  "restart_required": false,
+  "restart_required": true,
   "preserve": [
     "config/",
     "data/",
     "logs/",
     "backups/",
     "instance/",
-    ".env"
+    ".env",
+    ".venv/"
   ],
   "release_date": "2026-07-30",
   "changelog": [
-    "GitHub Releases als einzige Online-Updatequelle",
-    "Auswahl einer bestimmten Stable-, Beta- oder beliebigen Release-Version",
-    "Downgrade und Neuinstallation ausgewählter Versionen mit Backup und Rollback"
+    "LXC-Update bewahrt die virtuelle Python-Umgebung .venv",
+    "Python-Abhängigkeiten werden vor dem Neustart in der bestehenden venv aktualisiert",
+    "Update und Downgrade starten unter systemd wieder zuverlässig"
   ]
 }

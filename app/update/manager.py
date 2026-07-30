@@ -8,6 +8,7 @@ import os
 import platform
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import threading
@@ -31,6 +32,7 @@ PERSISTENT_TOP_LEVEL = {
     "instance",
     ".env",
     ".git",
+    ".venv",
 }
 IGNORED_NAMES = {"__pycache__", ".pytest_cache", ".mypy_cache", ".DS_Store"}
 MAX_ARCHIVE_BYTES = 750 * 1024 * 1024
@@ -452,6 +454,7 @@ class UpdateManager:
                 package_root = extracted / package.package_root if package.package_root else extracted
                 self.write_status("installing", "Programmdateien werden aktualisiert …", 55)
                 self._replace_program_files(package_root)
+                self._sync_runtime_dependencies()
                 self._write_update_marker(package.version, old_version, backup_path)
                 self.write_status(
                     "installed",
@@ -564,6 +567,32 @@ class UpdateManager:
     def _restore_program_backup(self, backup: Path) -> None:
         self._clear_program_files()
         self._safe_extract(backup, self.app_dir)
+
+    def _sync_runtime_dependencies(self) -> None:
+        """Aktualisiert im nativen LXC-/systemd-Betrieb die bestehende venv.
+
+        Die virtuelle Umgebung muss ein Update überleben, weil systemd den
+        Dienst daraus startet. Docker verwaltet Abhängigkeiten über das Image
+        und wird deshalb hier bewusst nicht verändert.
+        """
+        requirements = self.app_dir / "requirements.txt"
+        venv_python = self.app_dir / ".venv" / "bin" / "python"
+        if self._is_docker() or not requirements.is_file() or not venv_python.is_file():
+            return
+        try:
+            subprocess.run(
+                [str(venv_python), "-m", "pip", "install", "-r", str(requirements)],
+                cwd=str(self.app_dir),
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                timeout=900,
+            )
+        except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+            output = getattr(exc, "stdout", "") or ""
+            detail = output.strip().splitlines()[-1] if output.strip() else str(exc)
+            raise UpdateError(f"Python-Abhängigkeiten konnten nicht aktualisiert werden: {detail}") from exc
 
     def _replace_program_files(self, package_root: Path) -> None:
         if not (package_root / "VERSION").is_file():
