@@ -1,4 +1,10 @@
-## 35.3.1 - 2026-07-30
+# MP-Gateway 35.3.2
+
+- Fortschrittsbalken des Dialog-Installers repariert: Fortschrittswerte und Installationslog verwenden getrennte Ausgabekanäle.
+- Abschlussdaten werden nach dem Dialog als kopierbarer Shelltext ausgegeben.
+- Installationsdaten werden zusätzlich unter `/root/mp-gateway-35.3.2-installation.txt` gespeichert.
+
+## 35.3.2 - 2026-07-30
 
 - Neuer blauer Proxmox-/LXC-Installationsassistent auf Basis von `whiptail`.
 - Navigation mit Zurück, Weiter und Abbrechen sowie abschließender Zusammenfassung.

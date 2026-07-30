@@ -206,28 +206,35 @@ done
 export CTID HOSTNAME STORAGE TEMPLATE_STORAGE CORES MEMORY SWAP DISK BRIDGE NET_MODE NET_IP GATEWAY VLAN_TAG ONBOOT ENABLE_ROOT_SSH ROOT_PASSWORD RELEASE_VERSION RELEASE_URL
 
 perform_install() {
+  # Dateideskriptor 3 bleibt mit dem Dialog-Fortschrittsbalken verbunden.
+  # stdout/stderr der eigentlichen Installation gehen ausschließlich ins Log.
+  exec 3>&1
   exec >>"$LOG_FILE" 2>&1
-  echo 3; echo "XXX"; echo "Debian-13-Template wird geprüft ..."; echo "XXX"
+  progress() {
+    printf '%s\nXXX\n%s\nXXX\n' "$1" "$2" >&3
+  }
+  progress 3 "Debian-13-Template wird geprüft ..."
   pveam update
   TEMPLATE_NAME="$(pveam available | awk '/debian-13-standard/ && !found {value=$2; found=1} END {if(found) print value}')"
   [[ -n "$TEMPLATE_NAME" ]]
   TEMPLATE_BASENAME="$(basename "$TEMPLATE_NAME")"; TEMPLATE_VOLUME="${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE_BASENAME}"
   TEMPLATE_PATH="$(pvesm path "$TEMPLATE_VOLUME" 2>/dev/null || true)"
   if [[ -z "$TEMPLATE_PATH" || ! -f "$TEMPLATE_PATH" ]]; then
-    echo 10; echo "XXX"; echo "Debian-13-Template wird geladen ..."; echo "XXX"
+    progress 10 "Debian-13-Template wird geladen ..."
     pveam download "$TEMPLATE_STORAGE" "$TEMPLATE_NAME"; TEMPLATE_PATH="$(pvesm path "$TEMPLATE_VOLUME")"
   fi
-  echo 20; echo "XXX"; echo "LXC $CTID wird erstellt ..."; echo "XXX"
+  progress 20 "LXC $CTID wird erstellt ..."
   NET0="name=eth0,bridge=${BRIDGE},ip=$([[ $NET_MODE == dhcp ]] && echo dhcp || echo "$NET_IP")"
   [[ "$NET_MODE" == static ]] && NET0+=",gw=${GATEWAY}"; [[ -n "$VLAN_TAG" ]] && NET0+=",tag=${VLAN_TAG}"
   pct create "$CTID" "$TEMPLATE_PATH" --hostname "$HOSTNAME" --cores "$CORES" --memory "$MEMORY" --swap "$SWAP" \
     --rootfs "${STORAGE}:${DISK}" --net0 "$NET0" --features nesting=1 --onboot "$ONBOOT" --unprivileged 1 --password "$ROOT_PASSWORD"
-  echo 32; echo "XXX"; echo "Container wird gestartet ..."; echo "XXX"; pct start "$CTID"
-  echo 38; echo "XXX"; echo "Auf Netzwerk wird gewartet ..."; echo "XXX"
+  progress 32 "Container wird gestartet ..."; pct start "$CTID"
+  progress 38 "Auf Netzwerk wird gewartet ..."
   ready=0; for _ in $(seq 1 60); do pct exec "$CTID" -- bash -c 'ip -4 addr show dev eth0 | grep -q "inet "' && { ready=1; break; }; sleep 2; done
   [[ $ready == 1 ]]
-  echo 45; echo "XXX"; echo "Grundpakete werden installiert ..."; echo "XXX"
+  progress 45 "Grundpakete und MP-Gateway werden installiert ..."
   ROOT_PASSWORD_B64="$(printf %s "$ROOT_PASSWORD" | base64 -w0)"
+  progress 55 "MP-Gateway wird im Container eingerichtet ..."
   pct exec "$CTID" -- env RELEASE_URL="$RELEASE_URL" RELEASE_VERSION="$RELEASE_VERSION" ENABLE_ROOT_SSH="$ENABLE_ROOT_SSH" ROOT_PASSWORD_B64="$ROOT_PASSWORD_B64" bash -c '
 set -Eeuo pipefail; export DEBIAN_FRONTEND=noninteractive LANG=C.UTF-8 LC_ALL=C.UTF-8
 apt-get update; apt-get install -y curl unzip python3 python3-venv ca-certificates openssh-server
@@ -242,9 +249,9 @@ systemctl daemon-reload; systemctl restart mp-gateway
 if [[ "$ENABLE_ROOT_SSH" == 1 ]]; then /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password enable; else /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password disable; fi
 systemctl restart mp-gateway; sleep 4; systemctl is-active --quiet mp-gateway
 '
-  echo 95; echo "XXX"; echo "Installation wird geprüft ..."; echo "XXX"
+  progress 95 "Installation wird geprüft ..."
   IP="$(pct exec "$CTID" -- hostname -I | awk '{print $1}')"; echo "$IP" >"${LOG_FILE}.ip"
-  echo 100; echo "XXX"; echo "Installation abgeschlossen."; echo "XXX"
+  progress 100 "Installation abgeschlossen."
 }
 
 set +e
@@ -257,7 +264,21 @@ if [[ $rc != 0 ]]; then
   exit "$rc"
 fi
 IP="$(cat "${LOG_FILE}.ip")"
+RESULT_FILE="/root/mp-gateway-${RELEASE_VERSION}-installation.txt"
+ROOT_SSH_TEXT="$([[ $ENABLE_ROOT_SSH == 1 ]] && echo aktiviert || echo deaktiviert)"
+cat >"$RESULT_FILE" <<EOF
+MP-Gateway $RELEASE_VERSION wurde erfolgreich installiert.
+
+Container-ID: $CTID
+IP-Adresse:   $IP
+Weboberfläche: http://${IP}:8099
+Root-SSH:     $ROOT_SSH_TEXT
+Installationsprotokoll: $LOG_FILE
+EOF
+
 wt --title "Installation abgeschlossen" --msgbox \
-"MP-Gateway $RELEASE_VERSION wurde erfolgreich installiert.\n\nContainer-ID: $CTID\nIP-Adresse:   $IP\nWeboberfläche:\nhttp://${IP}:8099\n\nRoot-SSH: $([[ $ENABLE_ROOT_SSH == 1 ]] && echo aktiviert || echo deaktiviert)\n\nInstallationsprotokoll:\n$LOG_FILE" 20 76
+"MP-Gateway $RELEASE_VERSION wurde erfolgreich installiert.\n\nContainer-ID: $CTID\nIP-Adresse:   $IP\nWeboberfläche:\nhttp://${IP}:8099\n\nRoot-SSH: $ROOT_SSH_TEXT\n\nNach OK werden diese Angaben noch einmal als kopierbarer Shelltext angezeigt.\nZusätzlich gespeichert unter:\n$RESULT_FILE" 22 82
+
 clear
-echo "MP-Gateway $RELEASE_VERSION wurde installiert: http://${IP}:8099"
+cat "$RESULT_FILE"
+printf '\nDie Angaben oben können jetzt im Proxmox-Terminal markiert und kopiert werden.\n'
