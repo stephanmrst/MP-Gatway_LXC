@@ -140,7 +140,7 @@ choose_storage() {
   done
 }
 
-printf '\n%s== MP-Gateway Proxmox-LXC-Installer 0.7 ==%s\n' "$C_BOLD$C_BLUE" "$C_RESET"
+printf '\n%s== MP-Gateway 35.3.0 Debian/LXC Installer ==%s\n' "$C_BOLD$C_BLUE" "$C_RESET"
 
 command -v pct >/dev/null 2>&1 ||
   die "Dieses Skript muss auf einem Proxmox-Host ausgeführt werden."
@@ -291,10 +291,12 @@ done
 success "Netzwerk ist verfügbar"
 
 step "MP-Gateway im Container installieren"
+ROOT_PASSWORD_B64="$(printf %s "$ROOT_PASSWORD" | base64 -w0)"
 pct exec "$CTID" -- env \
   RELEASE_URL="$RELEASE_URL" \
   RELEASE_VERSION="$RELEASE_VERSION" \
   ENABLE_ROOT_SSH="$ENABLE_ROOT_SSH" \
+  ROOT_PASSWORD_B64="$ROOT_PASSWORD_B64" \
   bash -c '
 set -euo pipefail
 export DEBIAN_FRONTEND=noninteractive
@@ -323,12 +325,29 @@ cd "$PROJECT_ROOT"
 chmod +x "$INSTALL_SCRIPT"
 bash "$INSTALL_SCRIPT"
 
-printf "\n==> Root-Passwort und SSH konfigurieren\n"
+printf "\n==> Root-Passwort und SSH-Zugriff verbindlich konfigurieren\n"
+ROOT_PASSWORD="$(printf %s "$ROOT_PASSWORD_B64" | base64 -d)"
 printf "root:%s\n" "$ROOT_PASSWORD" | chpasswd
-if ! passwd -S root | grep -q "^root P "; then
-  echo "Fehler: Root-Passwort konnte nicht gesetzt werden."
+unset ROOT_PASSWORD ROOT_PASSWORD_B64
+
+passwd -S root | grep -q "^root P " || {
+  echo "Fehler: Root-Passwort wurde nicht gesetzt."
   exit 1
-fi
+}
+
+# Dateien aus dem Release nochmals verbindlich installieren. Dadurch werden
+# auch ältere oder zwischengespeicherte Service-Dateien zuverlässig ersetzt.
+install -D -o root -g root -m 0755   "$PROJECT_ROOT/scripts/lxc/mpgateway-admin"   /usr/local/lib/mp-gateway/mpgateway-admin
+
+cat >/etc/sudoers.d/mp-gateway-admin <<'EOF'
+mpgateway ALL=(root) NOPASSWD: /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password status, /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password enable, /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password disable
+EOF
+chmod 0440 /etc/sudoers.d/mp-gateway-admin
+visudo -cf /etc/sudoers.d/mp-gateway-admin >/dev/null
+
+install -o root -g root -m 0644   "$PROJECT_ROOT/packaging/systemd/mp-gateway.service"   /etc/systemd/system/mp-gateway.service
+
+systemctl daemon-reload
 
 if [[ "$ENABLE_ROOT_SSH" == "1" ]]; then
   /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password enable
@@ -336,7 +355,6 @@ else
   /usr/local/lib/mp-gateway/mpgateway-admin ssh-root-password disable
 fi
 
-systemctl daemon-reload
 systemctl enable mp-gateway >/dev/null
 systemctl restart mp-gateway
 sleep 5

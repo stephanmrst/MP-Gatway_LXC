@@ -1,10 +1,10 @@
-## 35.2.2 - 2026-07-27
+## 35.3.0 - 2026-07-27
 
 - Alte Restore-Experimente entfernt: keine zusätzliche systemd Path-Unit, kein Admin-Helper-Neustart und kein direkter `systemctl`-Aufruf mehr.
 - Restore-Code vereinfacht: Dateien wiederherstellen, Erfolg protokollieren und zentralen Prozessneustart anfordern.
 - Restore und Web-Update verwenden jetzt gemeinsam `app/services/process_control.py`.
 - Der zentrale Neustart beendet MP-Gateway verzögert mit Exit-Code 75; systemd (`Restart=on-failure`) und Docker (`restart: unless-stopped`) übernehmen den Neustart.
-- Versionsdatei, Docker-Image-Tag und Update-Manifeste auf 35.2.2 angehoben.
+- Versionsdatei, Docker-Image-Tag und Update-Manifeste auf 35.3.0 angehoben.
 
 ## 35.2.1
 

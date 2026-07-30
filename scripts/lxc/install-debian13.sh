@@ -48,7 +48,8 @@ install -o root -g root -m 0644 "$APP_DIR/packaging/systemd/mp-gateway.service" 
 chown -R mpgateway:mpgateway "$APP_DIR" "$CFG_DIR" "$DATA_DIR" "$BACKUP_DIR" "$LOG_DIR"
 systemctl enable --now ssh
 systemctl daemon-reload
-systemctl enable --now mp-gateway
+systemctl enable mp-gateway
+systemctl restart mp-gateway
 
 echo
 echo "MP-Gateway wurde installiert."
