@@ -1,6 +1,6 @@
 {
   "product": "MP-Gateway",
-  "version": "35.3.6",
+  "version": "35.4.0",
   "minimum_version": "34.4.0",
   "schema_version": 1,
   "restart_required": false,
@@ -11,5 +11,11 @@
     "backups/",
     "instance/",
     ".env"
+  ],
+  "release_date": "2026-07-30",
+  "changelog": [
+    "GitHub Releases als einzige Online-Updatequelle",
+    "Auswahl einer bestimmten Stable-, Beta- oder beliebigen Release-Version",
+    "Downgrade und Neuinstallation ausgewählter Versionen mit Backup und Rollback"
   ]
 }

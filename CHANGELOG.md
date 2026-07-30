@@ -1,3 +1,11 @@
+## 35.4.0 – 2026-07-30
+
+- Online-Update vollständig auf GitHub Releases umgestellt.
+- Neueste Stable-Version und Release-Liste direkt aus GitHub.
+- Auswahl von Stable, Beta oder allen Releases.
+- Bestimmte Versionen können installiert, erneut installiert oder als Downgrade eingespielt werden.
+- Backup und Rollback bleiben aktiv.
+
 # MP-Gateway 35.3.6
 
 ## 35.3.6 - 2026-07-30

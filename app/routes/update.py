@@ -74,7 +74,8 @@ def update_check():
 def update_online_check():
     manager = _manager()
     try:
-        online = manager.check_online_update()
+        channel = str((request.get_json(silent=True) or {}).get("channel") or "stable")
+        online = manager.check_online_update(channel)
         return jsonify({"ok": True, "message": manager.read_status().get("message", ""), "online": online, "status": manager.read_status()})
     except UpdateError as exc:
         return jsonify({"ok": False, "message": str(exc), "online": manager.read_online(), "status": manager.read_status()}), 400
@@ -84,7 +85,8 @@ def update_online_check():
 def update_online_download():
     manager = _manager()
     try:
-        manager.download_online_update()
+        payload = request.get_json(silent=True) or {}
+        manager.download_online_update(str(payload.get("version") or ""))
         result = manager.install_pending()
         return jsonify({
             "ok": True,

@@ -37,10 +37,9 @@ MAX_ARCHIVE_BYTES = 750 * 1024 * 1024
 MAX_MEMBER_BYTES = 250 * 1024 * 1024
 MAX_MEMBERS = 25000
 PROCESS_STARTED_AT = time.time()
-DEFAULT_ONLINE_MANIFEST_URL = os.environ.get(
-    "MP_GATEWAY_UPDATE_MANIFEST_URL",
-    "https://raw.githubusercontent.com/stephanmrst/MP-Gateway/main/update_release_manifest.json",
-).strip()
+GITHUB_REPO = os.environ.get("MP_GATEWAY_GITHUB_REPO", "stephanmrst/MP-Gatway_LXC").strip()
+GITHUB_API = f"https://api.github.com/repos/{GITHUB_REPO}"
+GITHUB_ASSET_SUFFIX = os.environ.get("MP_GATEWAY_GITHUB_ASSET_SUFFIX", "_LXC_Debian13_Stable.zip").strip()
 ONLINE_REQUEST_TIMEOUT = (8, 45)
 
 
@@ -159,7 +158,7 @@ class UpdateManager:
             "status": self.read_status(),
             "pending": self.read_pending(),
             "online": self.read_online(),
-            "online_manifest_url": DEFAULT_ONLINE_MANIFEST_URL,
+            "github_repo": GITHUB_REPO,
         }
 
 
@@ -195,141 +194,131 @@ class UpdateManager:
             "checked_at": checked_at,
         }
 
-    def check_online_update(self) -> dict[str, Any]:
-        """Load and validate the public release manifest."""
-        if not DEFAULT_ONLINE_MANIFEST_URL:
-            raise UpdateError("Für Online-Updates ist keine Manifest-URL konfiguriert.")
-        self.write_status("checking", "Online-Manifest wird geladen …", 10)
-        try:
-            response = requests.get(
-                DEFAULT_ONLINE_MANIFEST_URL,
-                timeout=ONLINE_REQUEST_TIMEOUT,
-                headers={"Accept": "application/json", "User-Agent": f"MP-Gateway/{self.current_version()}"},
-            )
-            response.raise_for_status()
-            manifest = response.json()
-        except requests.RequestException as exc:
-            self.write_status("failed", f"Online-Manifest konnte nicht geladen werden: {exc}", 100)
-            raise UpdateError(f"Online-Manifest konnte nicht geladen werden: {exc}") from exc
-        except ValueError as exc:
-            self.write_status("failed", "Online-Manifest enthält kein gültiges JSON.", 100)
-            raise UpdateError("Online-Manifest enthält kein gültiges JSON.") from exc
-
-        if not isinstance(manifest, dict):
-            raise UpdateError("Online-Manifest hat ein ungültiges Format.")
-        product = str(manifest.get("product") or PRODUCT_NAME).strip()
-        version = str(manifest.get("version") or "").strip()
-        zip_url = str(manifest.get("zip_url") or manifest.get("url") or "").strip()
-        sha256 = str(manifest.get("sha256") or "").strip().lower()
-        release_date = str(manifest.get("release_date") or "").strip()
-        changelog = manifest.get("changelog") or []
-        minimum_version = str(manifest.get("minimum_version") or "0.0.0").strip()
-        if product != PRODUCT_NAME:
-            raise UpdateError(f"Falsches Produkt im Online-Manifest: {product}")
-        if not self._version_tuple(version):
-            raise UpdateError("Das Online-Manifest enthält keine gültige Versionsnummer.")
-        self._validate_download_url(zip_url)
-        if sha256 and not re.fullmatch(r"[0-9a-f]{64}", sha256):
-            raise UpdateError("Die SHA256-Prüfsumme im Online-Manifest ist ungültig.")
-        if isinstance(changelog, str):
-            changelog = [line.strip(" •-\t") for line in changelog.splitlines() if line.strip()]
-        if not isinstance(changelog, list):
-            changelog = []
-        changelog = [str(item).strip() for item in changelog if str(item).strip()]
-        current = self.current_version()
-        available = self._version_tuple(version) > self._version_tuple(current)
-        result = {
-            "product": product,
-            "version": version,
-            "current_version": current,
-            "available": available,
-            "release_date": release_date,
-            "zip_url": zip_url,
-            "sha256": sha256,
-            "minimum_version": minimum_version,
-            "changelog": changelog,
-            "checked_at": datetime.now().isoformat(timespec="seconds"),
-            "manifest_url": DEFAULT_ONLINE_MANIFEST_URL,
+    def _github_headers(self) -> dict[str, str]:
+        return {
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": f"MP-Gateway/{self.current_version()}",
         }
-        self._write_json(self.online_file, result)
-        message = (
-            f"Neue Version {version} ist verfügbar."
-            if available
-            else f"MP-Gateway {current} ist bereits aktuell."
-        )
-        self.write_status("online_checked", message, 100)
-        return result
 
-    def download_online_update(self) -> dict[str, Any]:
-        """Download the checked online package and hand it to the common installer path."""
-        online = self.read_online()
-        if not online:
-            online = self.check_online_update()
-        version = str(online.get("version") or "").strip()
+    @staticmethod
+    def _release_version(release: dict[str, Any]) -> str:
+        raw = str(release.get("tag_name") or release.get("name") or "").strip()
+        match = re.search(r"(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)", raw)
+        return match.group(1) if match else ""
+
+    def _release_asset(self, release: dict[str, Any]) -> dict[str, Any] | None:
+        assets = release.get("assets") or []
+        candidates = [a for a in assets if str(a.get("name") or "").endswith(GITHUB_ASSET_SUFFIX)]
+        return candidates[0] if candidates else None
+
+    def list_github_releases(self, channel: str = "stable") -> list[dict[str, Any]]:
+        self.write_status("checking", "GitHub-Releases werden geladen …", 10)
+        try:
+            response = requests.get(f"{GITHUB_API}/releases?per_page=30", timeout=ONLINE_REQUEST_TIMEOUT, headers=self._github_headers())
+            response.raise_for_status()
+            payload = response.json()
+        except requests.RequestException as exc:
+            self.write_status("failed", f"GitHub-Releases konnten nicht geladen werden: {exc}", 100)
+            raise UpdateError(f"GitHub-Releases konnten nicht geladen werden: {exc}") from exc
+        except ValueError as exc:
+            raise UpdateError("GitHub hat keine gültige Release-Liste geliefert.") from exc
+        if not isinstance(payload, list):
+            raise UpdateError("GitHub hat eine ungültige Release-Liste geliefert.")
+        releases=[]
+        for rel in payload:
+            if not isinstance(rel, dict) or rel.get("draft"):
+                continue
+            prerelease=bool(rel.get("prerelease"))
+            if channel == "stable" and prerelease:
+                continue
+            if channel == "beta" and not prerelease:
+                continue
+            version=self._release_version(rel)
+            asset=self._release_asset(rel)
+            if not version or not asset:
+                continue
+            body=str(rel.get("body") or "").strip()
+            notes=[line.strip(" •-*\t") for line in body.splitlines() if line.strip() and not line.lstrip().startswith("#")]
+            releases.append({
+                "version": version,
+                "name": str(rel.get("name") or rel.get("tag_name") or version),
+                "tag": str(rel.get("tag_name") or ""),
+                "latest": bool(rel.get("make_latest") == "true") or False,
+                "prerelease": prerelease,
+                "published_at": str(rel.get("published_at") or ""),
+                "release_date": str(rel.get("published_at") or "")[:10],
+                "zip_url": str(asset.get("browser_download_url") or ""),
+                "asset_name": str(asset.get("name") or ""),
+                "asset_size": int(asset.get("size") or 0),
+                "changelog": notes[:30],
+            })
+        releases.sort(key=lambda item: self._version_tuple(item["version"]), reverse=True)
+        if releases:
+            releases[0]["latest"] = True
+        return releases
+
+    def check_online_update(self, channel: str = "stable") -> dict[str, Any]:
+        releases = self.list_github_releases(channel)
+        if not releases:
+            raise UpdateError("Kein passendes MP-Gateway-Release mit Stable-ZIP gefunden.")
+        latest = dict(releases[0])
         current = self.current_version()
-        if self._version_tuple(version) <= self._version_tuple(current):
-            raise UpdateError(f"Online ist keine neuere Version als {current} verfügbar.")
-        minimum = str(online.get("minimum_version") or "0.0.0").strip()
-        if minimum and self._version_tuple(current) < self._version_tuple(minimum):
-            raise UpdateError(f"Für Version {version} ist mindestens Version {minimum} erforderlich.")
-        zip_url = str(online.get("zip_url") or "").strip()
+        latest.update({
+            "product": PRODUCT_NAME,
+            "current_version": current,
+            "available": self._version_tuple(latest["version"]) > self._version_tuple(current),
+            "checked_at": datetime.now().isoformat(timespec="seconds"),
+            "channel": channel,
+            "releases": releases,
+        })
+        self._write_json(self.online_file, latest)
+        message = f"Neue Version {latest['version']} ist verfügbar." if latest["available"] else f"MP-Gateway {current} ist bereits aktuell."
+        self.write_status("online_checked", message, 100)
+        return latest
+
+    def download_online_update(self, version: str = "") -> dict[str, Any]:
+        online = self.read_online() or self.check_online_update()
+        releases = online.get("releases") or []
+        selected = next((r for r in releases if str(r.get("version")) == version), None) if version else online
+        if not selected:
+            online = self.check_online_update(str(online.get("channel") or "stable"))
+            releases = online.get("releases") or []
+            selected = next((r for r in releases if str(r.get("version")) == version), None)
+        if not selected:
+            raise UpdateError(f"GitHub-Release {version} wurde nicht gefunden.")
+        version = str(selected.get("version") or "").strip()
+        current = self.current_version()
+        zip_url = str(selected.get("zip_url") or "").strip()
         self._validate_download_url(zip_url)
-        expected_sha = str(online.get("sha256") or "").strip().lower()
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         target = self.download_dir / f"{stamp}_MP-Gateway_{version}.zip"
-        digest = hashlib.sha256()
-        total = 0
-        self.write_status("downloading", f"Update {version} wird heruntergeladen …", 5)
+        digest = hashlib.sha256(); total = 0
+        self.write_status("downloading", f"Version {version} wird von GitHub heruntergeladen …", 5)
         try:
-            with requests.get(
-                zip_url,
-                stream=True,
-                timeout=ONLINE_REQUEST_TIMEOUT,
-                headers={"Accept": "application/zip,application/octet-stream", "User-Agent": f"MP-Gateway/{current}"},
-            ) as response:
+            with requests.get(zip_url, stream=True, timeout=ONLINE_REQUEST_TIMEOUT, headers=self._github_headers()) as response:
                 response.raise_for_status()
                 content_length = int(response.headers.get("Content-Length") or 0)
                 if content_length > MAX_ARCHIVE_BYTES:
                     raise UpdateError("Das Online-Updatepaket ist zu groß.")
                 with target.open("wb") as handle:
                     for chunk in response.iter_content(chunk_size=1024 * 256):
-                        if not chunk:
-                            continue
+                        if not chunk: continue
                         total += len(chunk)
-                        if total > MAX_ARCHIVE_BYTES:
-                            raise UpdateError("Das Online-Updatepaket ist zu groß.")
-                        handle.write(chunk)
-                        digest.update(chunk)
+                        if total > MAX_ARCHIVE_BYTES: raise UpdateError("Das Online-Updatepaket ist zu groß.")
+                        handle.write(chunk); digest.update(chunk)
                         if content_length:
-                            progress = 5 + int(min(total / content_length, 1.0) * 55)
-                            self.write_status("downloading", f"Update {version} wird heruntergeladen …", progress)
+                            self.write_status("downloading", f"Version {version} wird von GitHub heruntergeladen …", 5 + int(min(total/content_length,1)*55))
         except requests.RequestException as exc:
             target.unlink(missing_ok=True)
-            self.write_status("failed", f"Download fehlgeschlagen: {exc}", 100)
-            raise UpdateError(f"Online-Update konnte nicht heruntergeladen werden: {exc}") from exc
-        except Exception:
+            raise UpdateError(f"GitHub-Release konnte nicht heruntergeladen werden: {exc}") from exc
+        package = self.inspect_package(target)
+        if package.version != version:
             target.unlink(missing_ok=True)
-            raise
-        if not target.exists() or target.stat().st_size == 0:
-            target.unlink(missing_ok=True)
-            raise UpdateError("Das heruntergeladene Updatepaket ist leer.")
-        actual_sha = digest.hexdigest()
-        if expected_sha and actual_sha != expected_sha:
-            target.unlink(missing_ok=True)
-            self.write_status("failed", "SHA256-Prüfung des Downloads fehlgeschlagen.", 100)
-            raise UpdateError("SHA256-Prüfung fehlgeschlagen. Das Updatepaket wurde verworfen.")
-        self.write_status("checking", "Heruntergeladenes Updatepaket wird geprüft …", 70)
-        pending = self.prepare(target)
-        package_version = str((pending.get("package") or {}).get("version") or "")
-        if package_version != version:
-            self.pending_file.unlink(missing_ok=True)
-            target.unlink(missing_ok=True)
-            raise UpdateError(
-                f"Online-Manifest nennt Version {version}, das Paket enthält aber Version {package_version}."
-            )
-        pending["source"] = "online"
-        pending["download_sha256"] = actual_sha
-        self._write_json(self.pending_file, pending)
+            raise UpdateError(f"GitHub nennt Version {version}, das Paket enthält aber Version {package.version}.")
+        pending={"archive": str(target.resolve()), "package": asdict(package), "checked_at": datetime.now().isoformat(timespec="seconds"), "source":"github", "download_sha256":digest.hexdigest(), "allow_non_upgrade": True}
+        self._write_json(self.pending_file,pending)
+        self.write_status("ready", f"Version {version} wurde geprüft und kann installiert werden.", 70)
         return pending
 
     @staticmethod
@@ -413,12 +402,10 @@ class UpdateManager:
         except KeyError as exc:
             raise UpdateError("Im Updatepaket fehlt die VERSION-Datei.") from exc
 
-    def validate_upgrade(self, package: PackageInfo) -> None:
+    def validate_upgrade(self, package: PackageInfo, allow_non_upgrade: bool = False) -> None:
         current = self.current_version()
-        if self._version_tuple(package.version) <= self._version_tuple(current):
-            raise UpdateError(
-                f"Das Paket {package.version} ist nicht neuer als die installierte Version {current}."
-            )
+        if not allow_non_upgrade and self._version_tuple(package.version) <= self._version_tuple(current):
+            raise UpdateError(f"Das Paket {package.version} ist nicht neuer als die installierte Version {current}.")
         minimum = package.minimum_version.strip()
         if minimum and self._version_tuple(current) < self._version_tuple(minimum):
             raise UpdateError(
@@ -449,7 +436,7 @@ class UpdateManager:
                 raise UpdateError("Es wurde noch kein Updatepaket geprüft.")
             archive = Path(str(pending.get("archive", "")))
             package = self.inspect_package(archive)
-            self.validate_upgrade(package)
+            self.validate_upgrade(package, allow_non_upgrade=bool(pending.get("allow_non_upgrade")))
             old_version = self.current_version()
             stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             backup_path = self.backup_update_dir / f"MP-Gateway_{old_version}_{stamp}.zip"

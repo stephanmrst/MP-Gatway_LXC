@@ -1,5 +1,5 @@
 <style>
-.update-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.update-kv{display:grid;grid-template-columns:140px 1fr;gap:7px 12px}.update-kv div:nth-child(odd){color:#9aa8b5}.update-drop{border:1px dashed #536373;border-radius:10px;padding:18px;background:#202a33}.update-progress{height:10px;background:#172028;border-radius:99px;overflow:hidden}.update-progress>span{display:block;height:100%;background:#25b96b;width:0}.update-message{padding:12px 14px;border-radius:8px;margin-bottom:14px}.update-ok{background:#183b2a;border:1px solid #2d8055}.update-error{background:#4a2222;border:1px solid #a34848}.update-warning{background:#463a1b;border:1px solid #a4842f}.update-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.update-actions button:disabled{opacity:.5;cursor:not-allowed}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all}.update-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.68);display:none;align-items:center;justify-content:center;z-index:10000;padding:20px}.update-modal-backdrop.open{display:flex}.update-modal{width:min(460px,100%);background:#1b242d;border:1px solid #536373;border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.45);padding:22px}.update-modal h3{margin:0 0 10px;font-size:1.35rem}.update-modal p{margin:0;color:#b8c5d1;line-height:1.45}.update-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.update-modal-actions .secondary{background:#596674}.update-modal-actions .danger{background:#a33d3d}
+.update-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.update-kv{display:grid;grid-template-columns:140px 1fr;gap:7px 12px}.update-kv div:nth-child(odd){color:#9aa8b5}.update-drop{border:1px dashed #536373;border-radius:10px;padding:18px;background:#202a33}.update-progress{height:10px;background:#172028;border-radius:99px;overflow:hidden}.update-progress>span{display:block;height:100%;background:#25b96b;width:0}.update-message{padding:12px 14px;border-radius:8px;margin-bottom:14px}.update-ok{background:#183b2a;border:1px solid #2d8055}.update-error{background:#4a2222;border:1px solid #a34848}.update-warning{background:#463a1b;border:1px solid #a4842f}.update-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.update-actions button:disabled{opacity:.5;cursor:not-allowed}.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all}.update-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.68);display:none;align-items:center;justify-content:center;z-index:10000;padding:20px}.update-modal-backdrop.open{display:flex}.update-modal{width:min(460px,100%);background:#1b242d;border:1px solid #536373;border-radius:12px;box-shadow:0 18px 60px rgba(0,0,0,.45);padding:22px}.update-modal h3{margin:0 0 10px;font-size:1.35rem}.update-modal p{margin:0;color:#b8c5d1;line-height:1.45}.update-modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}.update-modal-actions .secondary{background:#596674}.update-modal-actions .danger{background:#a33d3d}.update-select{min-width:220px;background:#172028;color:#eef4f8;border:1px solid #536373;border-radius:6px;padding:8px}.release-meta{margin-top:12px;padding:12px;background:#172028;border-radius:8px}
 </style>
 
 <div id="updateResultMessage" class="update-message" style="display:none"></div>
@@ -35,13 +35,22 @@
 
 <div class="card" style="margin-top:14px" id="onlineUpdateCard">
   <h2 class="section-title">Online-Update</h2>
-  <p class="small">Prüft das veröffentlichte MP-Gateway-Manifest und lädt ein verfügbares Update direkt herunter.</p>
+  <p class="small">Verwendet direkt die veröffentlichten GitHub-Releases. Standardmäßig wird die neueste Stable-Version angeboten; für Tests kann auch eine bestimmte Version gewählt werden.</p>
   <div class="update-kv">
     <div>Installierte Version</div><div><b id="onlineCurrentVersion">{{ info.version }}</b></div>
-    <div>Verfügbare Version</div><div><b id="onlineAvailableVersion">{{ info.online.version or 'Noch nicht geprüft' }}</b></div>
+    <div>Neueste Stable</div><div><b id="onlineAvailableVersion">{{ info.online.version or 'Noch nicht geprüft' }}</b></div>
     <div>Veröffentlicht</div><div id="onlineReleaseDate">{{ info.online.release_date or '–' }}</div>
     <div>Zuletzt geprüft</div><div id="onlineCheckedAt">{{ info.online.checked_at or '–' }}</div>
   </div>
+  <div class="update-actions">
+    <label>Release-Kanal
+      <select id="releaseChannel" class="update-select"><option value="stable">Stable</option><option value="beta">Beta</option><option value="all">Alle Releases</option></select>
+    </label>
+    <label>Version
+      <select id="releaseVersion" class="update-select"><option value="">Neueste Stable</option></select>
+    </label>
+  </div>
+  <div id="releaseDetails" class="release-meta" style="display:none"></div>
   <div id="onlineUpdateNotice" class="update-message update-ok" style="margin-top:14px;{% if not info.online %}display:none{% endif %}">{{ 'Neue Version verfügbar.' if info.online.available else 'Installierte Version ist aktuell.' }}</div>
   <div id="onlineChangelogBlock" style="margin-top:14px;{% if not info.online.changelog %}display:none{% endif %}">
     <b>Änderungen</b>
@@ -49,7 +58,7 @@
   </div>
   <div class="update-actions">
     <button type="button" id="onlineCheckButton" onclick="checkOnlineUpdate()">Nach Updates suchen</button>
-    <button type="button" id="onlineDownloadButton" onclick="downloadOnlineUpdate()" {% if not info.online.available %}style="display:none"{% endif %}>Herunterladen &amp; installieren</button>
+    <button type="button" id="onlineDownloadButton" onclick="downloadOnlineUpdate()" {% if not info.online.available %}style="display:none"{% endif %}>Ausgewählte Version installieren</button>
   </div>
 </div>
 
@@ -154,28 +163,40 @@ function applyOnlineInfo(online){
   const checkedAt=document.getElementById('onlineCheckedAt');
   const notice=document.getElementById('onlineUpdateNotice');
   const downloadButton=document.getElementById('onlineDownloadButton');
-  const changelogBlock=document.getElementById('onlineChangelogBlock');
-  const changelog=document.getElementById('onlineChangelog');
+  const select=document.getElementById('releaseVersion');
   if(availableVersion) availableVersion.textContent=online.version||'Noch nicht geprüft';
   if(releaseDate) releaseDate.textContent=online.release_date||'–';
   if(checkedAt) checkedAt.textContent=online.checked_at||'–';
-  if(notice){
-    notice.style.display=online.version?'block':'none';
-    notice.className='update-message '+(online.available?'update-warning':'update-ok');
-    notice.textContent=online.available?('Neue Version '+online.version+' ist verfügbar.'):('MP-Gateway '+(online.current_version||'')+' ist bereits aktuell.');
+  if(notice){notice.style.display=online.version?'block':'none';notice.className='update-message '+(online.available?'update-warning':'update-ok');notice.textContent=online.available?('Neue Stable-Version '+online.version+' ist verfügbar.'):('MP-Gateway '+(online.current_version||'')+' ist bereits auf dem neuesten Stable-Stand.');}
+  const releases=Array.isArray(online.releases)?online.releases:[];
+  if(select){
+    select.replaceChildren(...releases.map((r,i)=>{const o=document.createElement('option');o.value=r.version;o.textContent=r.version+(r.latest?' – Latest':'')+(r.prerelease?' – Beta':'');return o;}));
+    if(releases.length) select.value=releases[0].version;
   }
-  if(downloadButton) downloadButton.style.display=online.available?'inline-block':'none';
-  const entries=Array.isArray(online.changelog)?online.changelog:[];
-  if(changelog){
-    changelog.replaceChildren(...entries.map(item=>{const li=document.createElement('li');li.textContent=item;return li;}));
-  }
+  if(downloadButton) downloadButton.style.display=releases.length?'inline-block':'none';
+  window.mpGatewayReleases=releases;
+  showSelectedRelease();
+}
+function showSelectedRelease(){
+  const select=document.getElementById('releaseVersion');
+  const details=document.getElementById('releaseDetails');
+  const changelogBlock=document.getElementById('onlineChangelogBlock');
+  const changelog=document.getElementById('onlineChangelog');
+  const r=(window.mpGatewayReleases||[]).find(x=>x.version===select?.value);
+  if(!r){if(details)details.style.display='none';return;}
+  if(details){details.style.display='block';details.textContent='Veröffentlicht: '+(r.release_date||'–')+' · Paket: '+(r.asset_name||'')+' · Größe: '+((r.asset_size||0)/1024/1024).toFixed(1)+' MB';}
+  const entries=Array.isArray(r.changelog)?r.changelog:[];
+  if(changelog) changelog.replaceChildren(...entries.map(item=>{const li=document.createElement('li');li.textContent=item;return li;}));
   if(changelogBlock) changelogBlock.style.display=entries.length?'block':'none';
 }
+document.getElementById('releaseVersion')?.addEventListener('change',showSelectedRelease);
+document.getElementById('releaseChannel')?.addEventListener('change',checkOnlineUpdate);
 async function checkOnlineUpdate(){
   const button=document.getElementById('onlineCheckButton');
   if(button) button.disabled=true;
   try{
-    const response=await fetch('/update/online/check',{method:'POST',headers:{'Accept':'application/json'},cache:'no-store'});
+    const channel=document.getElementById('releaseChannel')?.value||'stable';
+    const response=await fetch('/update/online/check',{method:'POST',headers:{'Accept':'application/json','Content-Type':'application/json'},body:JSON.stringify({channel}),cache:'no-store'});
     const data=await response.json();
     showUpdateMessage(data.message,!!data.ok);
     applyOnlineInfo(data.online||{});
@@ -184,12 +205,14 @@ async function checkOnlineUpdate(){
   finally{if(button)button.disabled=false;}
 }
 async function downloadOnlineUpdate(){
-  const confirmed=await showUpdateConfirm('Online-Update herunterladen','Das verfügbare Update wird von GitHub geladen, geprüft, gesichert und installiert.','Herunterladen & installieren',false);
+  const version=document.getElementById('releaseVersion')?.value||'die neueste Version';
+  const confirmed=await showUpdateConfirm('GitHub-Version installieren','Version '+version+' wird geladen, geprüft, gesichert und installiert. Auch Downgrades und Neuinstallationen sind möglich.','Version installieren',false);
   if(!confirmed) return;
   const button=document.getElementById('onlineDownloadButton');
   if(button) button.disabled=true;
   try{
-    const response=await fetch('/update/online/download',{method:'POST',headers:{'Accept':'application/json'},cache:'no-store'});
+    const version=document.getElementById('releaseVersion')?.value||'';
+    const response=await fetch('/update/online/download',{method:'POST',headers:{'Accept':'application/json','Content-Type':'application/json'},body:JSON.stringify({version}),cache:'no-store'});
     const data=await response.json();
     showUpdateMessage(data.message,!!data.ok);
     applyUpdateInfo({status:data.status||{}});

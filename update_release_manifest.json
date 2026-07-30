@@ -1,15 +1,14 @@
 {
   "product": "MP-Gateway",
-  "version": "35.3.6",
+  "version": "35.4.0",
   "minimum_version": "34.4.0",
-  "release_date": "2026-07-27",
+  "release_date": "2026-07-30",
   "zip_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip",
   "sha256": "",
   "changelog": [
-    "Alte Restore-Neustart-Experimente und zusätzliche systemd-Units entfernt",
-    "Restore-Code auf Wiederherstellen plus zentralen Prozessneustart reduziert",
-    "Restore und Update verwenden jetzt denselben Neustartmechanismus",
-    "systemd und Docker starten MP-Gateway über Exit-Code 75 automatisch neu"
+    "GitHub Releases als einzige Online-Updatequelle",
+    "Auswahl einer bestimmten Stable-, Beta- oder beliebigen Release-Version",
+    "Downgrade und Neuinstallation ausgewählter Versionen mit Backup und Rollback"
   ],
   "download_url": "https://github.com/stephanmrst/MP-Gateway/releases/download/v34.7.3/MP-Gateway_34.7.3_GitHub_Clean.zip"
 }
